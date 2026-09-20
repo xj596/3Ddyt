@@ -1,0 +1,41 @@
+{
+  "version": "1.0",
+  "note": "3D 模型库清单。模型由你本人用 AI 生成，权益归你。把更多 .glb 放到 models/ 下，并在本文件登记即可被模型库加载。所有模型须为可商用授权（CC0 / CC-BY / 商业授权），严禁 CC-NC、仅个人学习授权或来源不明模型。",
+  "categories": [
+    {
+      "id": "mannequin",
+      "name": "人偶",
+      "icon": "🧍",
+      "items": [
+        { "name": "人偶 A", "icon": "🧍", "path": "man01.glb" },
+        { "name": "人偶 B", "icon": "🧍", "path": "man02.glb" },
+        { "name": "人偶 C", "icon": "🧍", "path": "man03.glb" },
+        { "name": "人偶 D", "icon": "🧍", "path": "man04.glb" }
+      ]
+    },
+    {
+      "id": "furniture",
+      "name": "家具",
+      "icon": "🪑",
+      "items": []
+    },
+    {
+      "id": "food",
+      "name": "美食",
+      "icon": "🍜",
+      "items": []
+    },
+    {
+      "id": "nature",
+      "name": "山水自然",
+      "icon": "⛰️",
+      "items": []
+    },
+    {
+      "id": "weapon",
+      "name": "武器",
+      "icon": "🗡️",
+      "items": []
+    }
+  ]
+}
