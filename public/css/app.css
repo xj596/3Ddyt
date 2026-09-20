@@ -1,0 +1,54 @@
+/* ============ 3D导演台 Web 框架 · 通用样式 ============ */
+
+/* 登录门控遮罩（覆盖全屏，校验登录期间显示） */
+#auth-gate {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #1a1410; color: #e8d9c5;
+  display: flex; align-items: center; justify-content: center;
+  font-family: system-ui, -apple-system, "PingFang SC", sans-serif;
+}
+.auth-gate-box { padding: 24px 32px; border: 1px solid #5a4a38; border-radius: 12px; background: #241c14; }
+
+/* 侧栏内用户栏（替代原固定顶栏，避免遮挡主界面） */
+.xf-userbar {
+  display: flex; align-items: center; gap: 10px; margin-top: 14px;
+  padding-top: 12px; border-top: 1px solid #3a2e20;
+  font-size: 13px; color: #d8c8b0;
+}
+.xf-userbar #user-email { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xf-userbar .tb-btn {
+  border: 1px solid #5a4a38; background: transparent; color: #e8d9c5;
+  padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: 13px;
+}
+.xf-userbar .tb-btn:hover { opacity: .85; }
+
+/* 锁定态样式（当前无分级，预留） */
+.locked { position: relative; opacity: .5; cursor: not-allowed; }
+.locked::after {
+  content: "🔒"; position: absolute; top: 2px; right: 4px; font-size: 11px;
+}
+
+/* 模型库弹窗 */
+#model-library-modal {
+  position: fixed; inset: 0; z-index: 800; display: none;
+  background: rgba(0,0,0,.55); align-items: center; justify-content: center;
+}
+#model-library-modal.open { display: flex; }
+.ml-box {
+  width: min(880px, 92vw); max-height: 82vh; overflow: auto;
+  background: #241c14; color: #e8d9c5; border: 1px solid #5a4a38; border-radius: 14px; padding: 20px;
+  font-family: system-ui, -apple-system, "PingFang SC", sans-serif;
+}
+.ml-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.ml-close { cursor: pointer; border: none; background: #3a2e20; color: #e8d9c5; padding: 6px 12px; border-radius: 8px; }
+.ml-cats { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.ml-cat { cursor: pointer; padding: 6px 12px; border-radius: 999px; background: #3a2e20; color: #e8d9c5; border: 1px solid #5a4a38; }
+.ml-cat.active { background: #c8762e; border-color: #c8762e; color: #fff; }
+.ml-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+.ml-item {
+  background: #2e2418; border: 1px solid #5a4a38; border-radius: 10px; padding: 12px;
+  cursor: pointer; text-align: center; font-size: 13px;
+}
+.ml-item:hover { border-color: #c8762e; }
+.ml-item .ml-thumb { height: 64px; display: flex; align-items: center; justify-content: center; font-size: 30px; }
+.ml-empty { color: #b8a890; padding: 24px; text-align: center; }
