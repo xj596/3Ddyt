@@ -5,226 +5,367 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>3D导演台 · 白模型镜头预可视化</title>
 <style>
-  :root {
-    --bg:#0d1117; --panel:#161b22; --panel2:#1c2333; --hover:#222a3a;
-    --accent:#4a9eff; --accent2:#2dd4bf; --green:#34d399; --warn:#fbbf24;
-    --text:#e6edf3; --muted:#8b949e; --border:#30363d; --radius:8px;
+  /* ================================================================
+     3D 导演台 · 控制台样式（暖色系重设计 v2）
+     令牌与 css/app.css / login.html 保持一致（咖色 + 浅橙）
+     ================================================================ */
+  :root{
+    --bg:#171209;        --panel:#20180f;    --panel2:#2b2118;
+    --panel3:#332719;    --hover:#3a2c1d;    --border:#4a3b2a;
+    --border2:#63503a;   --accent:#c8762e;   --accent-hi:#e08b3c;
+    --sand:#e8c49a;      --text:#e8d9c5;     --muted:#a89684;
+    --green:#7fc08a;     --warn:#e0b062;     --danger:#d9705f;
+    --radius:10px;       --shadow:0 12px 34px rgba(0,0,0,.55);
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   }
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body {
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC","WenQuanYi Micro Hei",sans-serif;
-    background:var(--bg); color:var(--text); overflow:hidden; height:100vh;
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI","Noto Sans SC",sans-serif;
+    background:var(--bg);color:var(--text);overflow:hidden;height:100vh;
+    -webkit-font-smoothing:antialiased;
   }
-  #app { display:flex; height:100vh; }
+  #app{display:flex;height:100vh;}
+  .hidden{display:none !important;}
+  button{font-family:inherit;}
+  ::selection{background:var(--accent);color:#fff;}
 
-  /* Sidebar */
-  #sidebar {
-    width:320px; min-width:320px; background:var(--panel);
-    border-right:1px solid var(--border); overflow-y:auto;
-    display:flex; flex-direction:column;
+  /* ================= 通用控件 ================= */
+  .btn{
+    padding:6px 12px;border-radius:8px;font-size:.76rem;font-weight:500;
+    border:1px solid var(--border);background:var(--panel2);color:var(--text);
+    cursor:pointer;transition:background .15s,border-color .15s,transform .08s;
+    white-space:nowrap;line-height:1.4;
   }
-  #sidebar::-webkit-scrollbar { width:6px; }
-  #sidebar::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
-  .sidebar-header {
-    padding:14px 16px; border-bottom:1px solid var(--border);
-    background:var(--panel2); position:sticky; top:0; z-index:10;
-  }
-  .sidebar-header h1 { font-size:1rem; font-weight:700; }
-  .sidebar-header p { font-size:0.75rem; color:var(--muted); margin-top:2px; }
-  .mannequin-selector { margin-top:10px; display:flex; align-items:center; gap:8px; }
-  .mannequin-selector label { font-size:0.75rem; color:var(--muted); white-space:nowrap; }
-  .mannequin-selector select { flex:1; background:var(--panel2); border:1px solid var(--border);
-    border-radius:5px; padding:4px 8px; color:var(--text); font-size:0.8rem; cursor:pointer; outline:none; }
-  .mannequin-selector select:focus { border-color:var(--accent); }
+  .btn:hover{background:var(--hover);border-color:var(--border2);}
+  .btn:active{transform:translateY(1px);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .btn.primary:hover{background:var(--accent-hi);border-color:var(--accent-hi);}
+  /* 开关类按钮的激活态（如工具栏「辅助线」） */
+  .btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .btn.active:hover{background:var(--accent-hi);border-color:var(--accent-hi);}
+  .btn.ghost{background:transparent;}
+  .btn.danger{color:var(--danger);border-color:rgba(217,112,95,.45);}
+  .btn.danger:hover{background:rgba(217,112,95,.12);border-color:var(--danger);}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+  .btn .ico{margin-right:4px;}
+  kbd{font-family:var(--mono);font-size:.62rem;background:var(--panel3);
+    border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted);}
 
-  .section { border-bottom:1px solid var(--border); }
-  .section-header {
-    padding:10px 16px; cursor:pointer; display:flex;
-    align-items:center; justify-content:space-between;
-    font-size:0.85rem; font-weight:600; color:var(--accent);
-    user-select:none; transition:background 0.15s;
+  select,input[type="number"],input[type="text"]{
+    width:100%;background:var(--panel2);border:1px solid var(--border);
+    border-radius:7px;padding:6px 8px;color:var(--text);font-size:.78rem;
+    cursor:pointer;outline:none;transition:border-color .15s;
   }
-  .section-header:hover { background:var(--hover); }
-  .section-header .arrow { transition:transform 0.2s; font-size:0.7rem; color:var(--muted); }
-  .section.collapsed .arrow { transform:rotate(-90deg); }
-  .section-body { padding:4px 16px 12px; display:block; }
-  .section.collapsed .section-body { display:none; }
+  select:focus,input:focus{border-color:var(--accent);}
+  input[type="range"]{
+    width:100%;-webkit-appearance:none;height:4px;background:var(--border);
+    border-radius:2px;outline:none;cursor:pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:14px;height:14px;background:var(--accent);
+    border-radius:50%;cursor:pointer;border:2px solid var(--panel);
+    box-shadow:0 0 0 1px var(--accent);
+  }
+  .toggle-row{display:flex;align-items:center;gap:8px;}
+  .toggle-row input[type="checkbox"]{width:15px;height:15px;cursor:pointer;accent-color:var(--accent);}
+  .toggle-row label{font-size:.76rem;cursor:pointer;color:var(--text);}
 
-  .param-row { margin-bottom:8px; }
-  .param-label {
-    font-size:0.75rem; color:var(--muted); margin-bottom:3px;
-    display:flex; justify-content:space-between; align-items:center;
+  /* ================= 侧栏 ================= */
+  #sidebar{
+    width:346px;min-width:346px;background:var(--panel);
+    border-right:1px solid var(--border);overflow-y:auto;
+    display:flex;flex-direction:column;scrollbar-width:thin;
   }
-  .param-label .val { color:var(--accent2); font-family:monospace; font-size:0.72rem; }
-  select, input[type="number"] {
-    width:100%; background:var(--panel2); border:1px solid var(--border);
-    border-radius:5px; padding:5px 8px; color:var(--text);
-    font-size:0.8rem; cursor:pointer; outline:none;
-  }
-  select:focus, input:focus { border-color:var(--accent); }
-  input[type="range"] {
-    width:100%; -webkit-appearance:none; height:4px;
-    background:var(--border); border-radius:2px; outline:none; cursor:pointer;
-  }
-  input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance:none; width:14px; height:14px;
-    background:var(--accent); border-radius:50%; cursor:pointer;
-  }
-  .toggle-row { display:flex; align-items:center; gap:8px; }
-  .toggle-row input[type="checkbox"] { width:16px; height:16px; cursor:pointer; accent-color:var(--accent); }
-  .toggle-row label { font-size:0.8rem; cursor:pointer; }
+  #sidebar::-webkit-scrollbar{width:8px;}
+  #sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+  #sidebar::-webkit-scrollbar-track{background:transparent;}
 
-  .param-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
-  .param-grid .param-row { margin-bottom:4px; }
+  .sidebar-header{
+    padding:16px 16px 14px;background:linear-gradient(180deg,#251c12,#20180f);
+    border-bottom:1px solid var(--border);position:sticky;top:0;z-index:12;
+    box-shadow:0 6px 18px rgba(0,0,0,.28);
+  }
+  .brand-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .sidebar-header h1{font-size:1rem;font-weight:700;letter-spacing:.4px;}
+  .sidebar-header h1 .dot{color:var(--accent);}
+  .ver-badge{
+    font-size:.6rem;color:var(--sand);border:1px solid var(--border2);
+    border-radius:999px;padding:2px 8px;font-family:var(--mono);
+  }
+  .sidebar-header .sub{font-size:.7rem;color:var(--muted);margin-top:4px;line-height:1.5;}
 
-  /* Toolbar */
-  #toolbar {
-    position:absolute; top:12px; left:50%; transform:translateX(-50%);
-    display:flex; gap:6px; z-index:100;
-    background:rgba(22,27,34,0.92); border:1px solid var(--border);
-    border-radius:10px; padding:6px; backdrop-filter:blur(8px);
+  .field-block{margin-top:12px;}
+  .field-label{
+    display:flex;align-items:center;justify-content:space-between;
+    font-size:.68rem;color:var(--muted);margin-bottom:5px;letter-spacing:.3px;
   }
-  .btn {
-    padding:6px 14px; border-radius:6px; font-size:0.8rem; font-weight:500;
-    border:1px solid var(--border); background:var(--panel2); color:var(--text);
-    cursor:pointer; transition:all 0.15s; white-space:nowrap;
+  .mannequin-selector select{
+    background:var(--panel3);border-color:var(--border2);font-weight:600;
+    color:var(--sand);font-family:var(--mono);font-size:.76rem;
   }
-  .btn:hover { background:var(--hover); border-color:var(--accent); }
-  .btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
-  .btn.green { background:var(--green); border-color:var(--green); color:#064e3b; font-weight:600; }
-  .btn.green:hover { opacity:0.85; }
+  .quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;}
+  .quick-actions .btn{padding:7px 2px;font-size:.68rem;display:flex;flex-direction:column;
+    align-items:center;gap:3px;border-radius:8px;}
+  .quick-actions .btn .glyph{font-size:.95rem;line-height:1;}
 
-  /* Viewport */
-  #viewport { flex:1; position:relative; }
-  #viewport canvas { display:block; width:100%; height:100%; }
-  #info-bar {
-    position:absolute; bottom:12px; left:12px;
-    background:rgba(22,27,34,0.85); border:1px solid var(--border);
-    border-radius:6px; padding:6px 12px; font-size:0.75rem; color:var(--muted);
-    backdrop-filter:blur(6px);
+  .xf-userbar{
+    display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:11px;
+    border-top:1px solid var(--border);font-size:.72rem;color:var(--sand);
   }
-  #info-bar .shot-info { color:var(--accent2); font-family:monospace; }
+  .xf-userbar #user-email{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);}
+  .xf-userbar .tb-btn{
+    border:1px solid var(--border);background:transparent;color:var(--text);
+    padding:4px 11px;border-radius:7px;cursor:pointer;font-size:.7rem;
+  }
+  .xf-userbar .tb-btn:hover{border-color:var(--danger);color:var(--danger);}
 
-  /* Aspect ratio frame overlay */
-  #aspect-frame {
-    position:absolute; border:2px solid rgba(74,158,255,0.5);
-    pointer-events:none; display:none; z-index:50;
+  /* ================= 折叠分组 ================= */
+  .section{border-bottom:1px solid var(--border);}
+  .section-header{
+    padding:11px 16px;cursor:pointer;display:flex;align-items:center;gap:9px;
+    font-size:.8rem;font-weight:600;color:var(--sand);user-select:none;
+    transition:background .15s;
   }
-  #grid-overlay {
-    position:absolute; pointer-events:none; display:none; z-index:49;
-  }
-  /* Reference image overlay */
-  #ref-image-overlay {
-    position:absolute; top:0; left:0; width:100%; height:100%;
-    pointer-events:none; display:none; z-index:48;
-    background-size:contain; background-repeat:no-repeat; background-position:center;
-    opacity:0.4;
-  }
-  #ref-controls {
-    position:absolute; bottom:50px; left:50%; transform:translateX(-50%);
-    display:none; z-index:55; gap:8px; align-items:center;
-    background:rgba(22,27,34,0.92); border:1px solid var(--border);
-    border-radius:8px; padding:6px 12px; backdrop-filter:blur(8px);
-  }
-  #ref-controls label { font-size:0.75rem; color:var(--muted); white-space:nowrap; }
-  #ref-controls input[type="range"] { width:80px; height:4px; -webkit-appearance:none;
-    background:var(--border); border-radius:2px; outline:none; cursor:pointer; }
-  #ref-controls input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance:none; width:12px; height:12px;
-    background:var(--accent); border-radius:50%; cursor:pointer; }
-  #ref-controls .btn { padding:3px 10px; font-size:0.75rem; }
+  .section-header:hover{background:var(--hover);}
+  .section-header .sec-ico{font-size:.92rem;width:18px;text-align:center;}
+  .section-header .sec-txt{flex:1;}
+  .section-header .sec-txt small{display:block;font-weight:400;font-size:.62rem;
+    color:var(--muted);margin-top:1px;}
+  .section-header .arrow{font-size:.6rem;color:var(--muted);transition:transform .2s;}
+  .section.collapsed .arrow{transform:rotate(-90deg);}
+  .section-body{padding:6px 16px 14px;display:block;}
+  .section.collapsed .section-body{display:none;}
 
-  /* Toast */
-  #toast {
-    position:absolute; top:60px; left:50%; transform:translateX(-50%);
-    background:var(--green); color:#064e3b; padding:8px 20px;
-    border-radius:8px; font-size:0.85rem; font-weight:600;
-    opacity:0; transition:opacity 0.3s; z-index:200;
-    pointer-events:none;
+  /* ================= 参数行 ================= */
+  .param-row{margin-bottom:10px;}
+  .param-row:last-child{margin-bottom:2px;}
+  .param-label{
+    font-size:.7rem;color:var(--muted);margin-bottom:4px;
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
   }
-  #toast.show { opacity:1; }
+  .param-label .val{color:var(--accent-hi);font-family:var(--mono);font-size:.68rem;}
+  .param-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .param-grid .param-row{margin-bottom:6px;}
 
-  /* ============ 人偶调整 / 镜头运动 面板 ============ */
-  #mannequin-control-panel, #camera-move-panel {
-    margin-top:14px; border-top:1px solid var(--border); padding:10px 16px;
+  /* ================= 卡片面板（人偶调整 / 镜头运动 / 出图入口） ================= */
+  .card{border-bottom:1px solid var(--border);padding:13px 16px 15px;}
+  .card h3{
+    font-size:.78rem;color:var(--sand);margin-bottom:9px;
+    display:flex;align-items:center;gap:7px;font-weight:600;
   }
-  #mannequin-control-panel h3, #camera-move-panel h3 {
-    font-size:0.82rem; color:var(--accent); margin-bottom:8px;
-    display:flex; align-items:baseline; gap:6px;
+  .card h3 .tag{margin-left:auto;font-size:.6rem;color:var(--muted);font-weight:400;}
+  .ctrl-row{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-bottom:8px;
+    font-size:.66rem;color:var(--muted);}
+  .ctrl-row > span:first-child{min-width:34px;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .mv-btn{
+    background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    border-radius:8px;padding:8px 4px;font-size:.7rem;cursor:pointer;
+    text-align:center;transition:background .15s,border-color .15s,transform .08s;
+    line-height:1.3;
   }
-  #mannequin-control-panel h3 span { font-size:0.62rem; color:var(--muted); font-weight:400; }
-  .ctrl-row { display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-bottom:8px;
-    font-size:0.7rem; color:var(--muted); }
-  .mv-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
-  .mv-btn { background:var(--panel2); border:1px solid var(--border); color:var(--text);
-    border-radius:6px; padding:7px 4px; font-size:0.72rem; cursor:pointer; text-align:center; }
-  .mv-btn:hover { background:var(--hover); border-color:var(--accent); }
-  .mv-reset { width:100%; margin-top:4px; background:var(--panel); border:1px solid var(--border);
-    color:var(--text); border-radius:6px; padding:6px; font-size:0.72rem; cursor:pointer; }
-  .mv-reset:hover { border-color:var(--accent); }
+  .mv-btn:hover{background:var(--hover);border-color:var(--accent);color:var(--accent-hi);}
+  .mv-btn:active{transform:translateY(1px);}
+  .mv-btn.wide{grid-column:span 2;}
+  .mv-reset{
+    width:100%;margin-top:2px;background:transparent;border:1px dashed var(--border2);
+    color:var(--muted);border-radius:8px;padding:7px;font-size:.7rem;cursor:pointer;
+    transition:color .15s,border-color .15s;
+  }
+  .mv-reset:hover{color:var(--sand);border-color:var(--accent);}
+  .mv-size-val{font-size:.68rem;color:var(--accent-hi);font-family:var(--mono);margin-left:auto;}
 
-  .hidden { display:none !important; }
+  /* 出图入口卡（高亮） */
+  .cta-card{
+    margin:12px 12px 14px;padding:13px 14px;border-radius:12px;
+    background:linear-gradient(135deg,rgba(200,118,46,.22),rgba(200,118,46,.06));
+    border:1px solid rgba(200,118,46,.5);
+  }
+  .cta-card h3{font-size:.8rem;color:var(--sand);display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+  .cta-card p{font-size:.66rem;color:var(--muted);line-height:1.5;margin-bottom:9px;}
+  .cta-card .btn{width:100%;}
 
-  /* ============ 左侧对象树面板 ============ */
-  #object-panel { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
-  #object-panel h3 { font-size:0.8rem; color:var(--accent); margin-bottom:6px; display:flex; align-items:center; gap:6px; }
-  #obj-search { width:100%; box-sizing:border-box; background:var(--panel); border:1px solid var(--border);
-    color:var(--text); border-radius:6px; padding:4px 8px; font-size:0.72rem; margin-bottom:6px; }
-  #obj-search:focus { border-color:var(--accent); outline:none; }
-  .obj-group-title { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;
-    margin:6px 0 2px; padding-left:2px; }
-  .obj-row { display:flex; align-items:center; gap:4px; padding:3px 4px; border-radius:6px; cursor:pointer;
-    font-size:0.72rem; }
-  .obj-row:hover { background:var(--hover); }
-  .obj-row.selected { background:rgba(91,141,239,0.18); outline:1px solid var(--accent); }
-  .obj-row .obj-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .obj-row .obj-btn { border:none; background:transparent; color:var(--muted); cursor:pointer; font-size:0.75rem;
-    padding:0 2px; line-height:1; border-radius:4px; }
-  .obj-row .obj-btn:hover { background:var(--hover); color:var(--text); }
-  .obj-row .obj-btn.off { opacity:0.35; }
-  .obj-row .obj-btn.locked { color:var(--warn); }
-  #obj-empty { font-size:0.68rem; color:var(--muted); font-style:italic; padding:4px 2px; }
+  /* ================= 工具条 ================= */
+  #toolbar{
+    /* 关键：绝对定位元素若只给 left:50%，可用宽度只剩一半会提前换行；
+       改用 width:max-content 让工具条按内容撑开，避免换行遮挡画面 */
+    position:absolute;top:12px;left:50%;transform:translateX(-50%);
+    display:flex;align-items:center;gap:8px;z-index:100;
+    background:rgba(32,24,15,.94);border:1px solid var(--border);
+    border-radius:12px;padding:6px 8px;backdrop-filter:blur(10px);
+    box-shadow:var(--shadow);width:max-content;max-width:calc(100% - 24px);
+    flex-wrap:wrap;justify-content:center;
+  }
+  .tool-group{display:flex;align-items:center;gap:4px;}
+  .tool-sep{width:1px;height:20px;background:var(--border);margin:0 2px;}
+  #toolbar .btn{padding:5px 10px;font-size:.73rem;}
+  #ref-controls-inline input[type="range"]{width:100%;}
 
-  /* ============ 右侧姿势预设面板 ============ */
-  #pose-panel {
-    position:fixed; right:12px; top:60px; bottom:12px; width:232px;
-    background:rgba(22,27,34,0.96); border:1px solid var(--border);
-    border-radius:10px; z-index:90; display:flex; flex-direction:column;
-    box-shadow:0 8px 30px rgba(0,0,0,.45); backdrop-filter:blur(6px);
+  /* ================= 视口 ================= */
+  #viewport{flex:1;position:relative;background:#0f0b06;overflow:hidden;}
+  #viewport canvas{display:block;width:100%;height:100%;}
+  #info-bar{
+    position:absolute;bottom:12px;left:12px;z-index:60;
+    background:rgba(32,24,15,.88);border:1px solid var(--border);
+    border-radius:8px;padding:6px 12px;font-size:.7rem;color:var(--muted);
+    backdrop-filter:blur(8px);display:flex;gap:10px;align-items:center;
   }
-  .pose-header {
-    padding:10px 12px; border-bottom:1px solid var(--border);
-    font-size:0.82rem; font-weight:700; color:var(--accent);
-    display:flex; align-items:center; justify-content:space-between;
+  #info-bar .shot-info{color:var(--sand);font-family:var(--mono);}
+  #nav-hint{
+    position:absolute;bottom:12px;right:12px;z-index:60;
+    background:rgba(32,24,15,.88);border:1px solid var(--border);border-radius:8px;
+    padding:6px 12px;font-size:.66rem;color:var(--muted);backdrop-filter:blur(8px);
+    display:flex;gap:10px;
   }
-  .pose-count { font-size:0.7rem; color:var(--muted); font-weight:400; }
-  .pose-current {
-    padding:6px 12px; font-size:0.7rem; color:var(--accent2);
-    border-bottom:1px solid var(--border); white-space:nowrap;
-    overflow:hidden; text-overflow:ellipsis;
+  #aspect-frame{position:absolute;border:1px solid rgba(224,139,60,.6);pointer-events:none;display:none;z-index:50;border-radius:2px;}
+  #grid-overlay{position:absolute;pointer-events:none;display:none;z-index:49;}
+  #ref-image-overlay{
+    position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;
+    display:none;z-index:48;background-size:contain;background-repeat:no-repeat;
+    background-position:center;opacity:.4;
   }
-  #pose-grid {
-    flex:1; overflow-y:auto; padding:8px;
-    display:grid; grid-template-columns:1fr 1fr; gap:6px; align-content:start;
+  #toast{
+    position:absolute;top:64px;left:50%;transform:translateX(-50%) translateY(-6px);
+    background:var(--accent);color:#fff;padding:9px 20px;border-radius:999px;
+    font-size:.78rem;font-weight:600;opacity:0;transition:opacity .25s,transform .25s;
+    z-index:200;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.4);
   }
-  #pose-grid::-webkit-scrollbar { width:6px; }
-  #pose-grid::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
-  .pose-btn {
-    background:var(--panel2); color:var(--text); border:1px solid var(--border);
-    border-radius:6px; padding:7px 2px; font-size:0.72rem; line-height:1.25;
-    cursor:pointer; text-align:center; transition:all .15s;
-  }
-  .pose-btn:hover { border-color:var(--accent); background:var(--hover); }
-  .pose-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-  /* ============ 人偶头顶编号标签 ============ */
-  .mannequin-tag {
-    color:#fff; background:rgba(15,23,42,0.88); border:1px solid rgba(74,158,255,0.85);
-    border-radius:10px; padding:1px 7px; font-size:12px; font-weight:700;
-    font-family:monospace; white-space:nowrap; line-height:1.5; user-select:none;
+  /* ================= 人偶头顶编号标签 ================= */
+  .mannequin-tag{
+    color:#fff;background:rgba(32,24,15,.9);border:1px solid var(--accent);
+    border-radius:10px;padding:1px 7px;font-size:12px;font-weight:700;
+    font-family:var(--mono);white-space:nowrap;line-height:1.5;user-select:none;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
   }
-  .mv-size-val { font-size:0.72rem; color:var(--accent2); font-family:monospace; margin-left:6px; }
 
+  /* ================= 右侧姿势面板 ================= */
+  #pose-panel{
+    position:fixed;right:12px;top:64px;bottom:12px;width:250px;
+    background:rgba(32,24,15,.96);border:1px solid var(--border);border-radius:12px;
+    z-index:90;display:flex;flex-direction:column;box-shadow:var(--shadow);
+    backdrop-filter:blur(8px);overflow:hidden;
+  }
+  .pose-header{
+    padding:11px 13px;border-bottom:1px solid var(--border);
+    font-size:.78rem;font-weight:700;color:var(--sand);
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+  }
+  .pose-count{font-size:.64rem;color:var(--muted);font-weight:400;}
+  .pose-search{padding:9px 11px 4px;}
+  .pose-search input{font-size:.72rem;padding:5px 8px;}
+  .pose-current{
+    padding:7px 13px;font-size:.66rem;color:var(--accent-hi);
+    border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;background:rgba(200,118,46,.07);
+  }
+  #pose-grid{
+    flex:1;overflow-y:auto;padding:9px;align-content:start;
+    display:grid;grid-template-columns:1fr 1fr;gap:6px;
+  }
+  #pose-grid::-webkit-scrollbar{width:7px;}
+  #pose-grid::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+  .pose-group{
+    grid-column:1 / -1;font-size:.6rem;color:var(--muted);letter-spacing:.6px;
+    text-transform:uppercase;margin:4px 0 1px;padding-left:2px;
+  }
+  .pose-btn{
+    background:var(--panel2);color:var(--text);border:1px solid var(--border);
+    border-radius:7px;padding:7px 2px;font-size:.68rem;line-height:1.3;
+    cursor:pointer;text-align:center;transition:background .15s,border-color .15s,color .15s;
+  }
+  .pose-btn:hover{border-color:var(--accent);background:var(--hover);color:var(--accent-hi);}
+  .pose-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
+  .pose-empty{grid-column:1 / -1;color:var(--muted);font-size:.68rem;font-style:italic;padding:8px 2px;}
+
+  /* ================= 多角度出图弹窗 ================= */
+  #xf-export-modal{
+    position:fixed;inset:0;z-index:900;display:none;
+    background:rgba(0,0,0,.62);align-items:center;justify-content:center;
+    backdrop-filter:blur(3px);padding:20px;
+  }
+  #xf-export-modal.open{display:flex;}
+  .xp-box{
+    width:min(760px,94vw);max-height:90vh;overflow:auto;
+    background:var(--panel);color:var(--text);border:1px solid var(--border2);
+    border-radius:14px;box-shadow:var(--shadow);
+  }
+  .xp-box::-webkit-scrollbar{width:8px;}
+  .xp-box::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+  .xp-head{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:15px 18px;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,#251c12,#20180f);position:sticky;top:0;z-index:2;
+  }
+  .xp-head strong{font-size:.92rem;}
+  .xp-head .sub{font-size:.66rem;color:var(--muted);margin-top:2px;}
+  .xp-close{
+    border:1px solid var(--border);background:transparent;color:var(--text);
+    padding:5px 13px;border-radius:8px;cursor:pointer;font-size:.72rem;
+  }
+  .xp-close:hover{border-color:var(--danger);color:var(--danger);}
+  .xp-body{padding:16px 18px 4px;}
+  .xp-sec{margin-bottom:16px;}
+  .xp-sec-title{
+    font-size:.72rem;color:var(--sand);font-weight:600;margin-bottom:8px;
+    display:flex;align-items:center;gap:7px;
+  }
+  .xp-sec-title .hint{margin-left:auto;font-size:.62rem;color:var(--muted);font-weight:400;}
+  .xp-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .xp-chip{
+    border:1px solid var(--border);background:var(--panel2);color:var(--text);
+    padding:6px 12px;border-radius:999px;cursor:pointer;font-size:.7rem;
+    transition:background .15s,border-color .15s,color .15s;
+  }
+  .xp-chip:hover{border-color:var(--accent);color:var(--accent-hi);}
+  .xp-chip.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .xp-angles{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px;}
+  .xp-angle{
+    display:flex;align-items:center;gap:6px;font-size:.7rem;
+    background:var(--panel2);border:1px solid var(--border);border-radius:8px;
+    padding:6px 8px;cursor:pointer;
+  }
+  .xp-angle input{width:14px;height:14px;accent-color:var(--accent);cursor:pointer;}
+  .xp-angle:hover{border-color:var(--border2);}
+  .xp-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .xp-field{display:flex;flex-direction:column;gap:5px;}
+  .xp-field label{font-size:.68rem;color:var(--muted);}
+  .xp-checks{display:flex;flex-wrap:wrap;gap:14px;align-items:center;}
+  .xp-check{display:flex;align-items:center;gap:6px;font-size:.72rem;cursor:pointer;color:var(--text);}
+  .xp-check input{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;}
+  .xp-stats{
+    display:flex;gap:16px;flex-wrap:wrap;font-size:.68rem;color:var(--muted);
+    background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:10px 13px;
+  }
+  .xp-stats b{color:var(--accent-hi);font-family:var(--mono);font-weight:600;}
+  .xp-foot{
+    padding:14px 18px 18px;border-top:1px solid var(--border);position:sticky;bottom:0;
+    background:var(--panel);display:flex;flex-direction:column;gap:11px;
+  }
+  .xp-actions{display:flex;gap:9px;}
+  .xp-actions .btn{flex:1;}
+  .xp-progress{display:none;}
+  .xp-progress.on{display:block;}
+  .xp-bar{height:6px;border-radius:3px;background:var(--panel3);overflow:hidden;}
+  .xp-bar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-hi));
+    transition:width .18s;}
+  .xp-progress .txt{font-size:.66rem;color:var(--muted);margin-top:6px;font-family:var(--mono);}
+  .xp-preview{display:none;gap:12px;align-items:flex-start;}
+  .xp-preview.on{display:flex;}
+  .xp-preview img{
+    width:100%;max-height:220px;object-fit:contain;background:#0f0b06;
+    border:1px solid var(--border);border-radius:9px;
+  }
+
+  @media (max-width:1180px){
+    #pose-panel{width:214px;}
+  }
+  @media (max-width:1024px){
+    #pose-panel{display:none;}
+  }
 </style>
 
 <!-- ============ 内联 CC0 人偶模型（base64，无需网络即可加载） ============ -->
@@ -264,107 +405,185 @@ window.__EMBEDDED_MODELS = {"man01.glb":"Z2xURgIAAAC0sAcA/GoBAEpTT057CiJhc3NldCI
   <div id="app">
     <!-- 登录门控遮罩（校验登录期间全屏覆盖，校验后由底部脚本隐藏） -->
     <div id="auth-gate"><div class="auth-gate-box">🔄 正在校验登录状态…</div></div>
-    <!-- ============ Sidebar ============ -->
+
+    <!-- ============ 左侧：控制台 ============ -->
     <div id="sidebar">
       <div class="sidebar-header">
-        <h1>3D导演台</h1>
-        <p>CC0 风格小人偶 · 镜头预可视化</p>
-        <div class="mannequin-selector">
-          <label>当前人偶</label>
-          <select id="mannequin-select" onchange="selectMannequin(this.value)"></select>
+        <div class="brand-row">
+          <h1>3D 导演台<span class="dot">.</span></h1>
+          <span class="ver-badge">v2.0</span>
         </div>
+        <p class="sub">白模型镜头预可视化 · 多机位出图工作台</p>
+
+        <div class="field-block">
+          <div class="field-label">
+            <span>当前人偶</span>
+            <span id="mannequin-count-badge">共 1 个</span>
+          </div>
+          <div class="mannequin-selector">
+            <select id="mannequin-select" onchange="selectMannequin(this.value)"></select>
+          </div>
+          <div class="quick-actions">
+            <button class="btn" onclick="addMannequin()" title="新增一个人偶"><span class="glyph">➕</span>新增</button>
+            <button class="btn" onclick="duplicateSelectedMannequin()" title="复制当前人偶（含姿势与位置）"><span class="glyph">⧉</span>复制</button>
+            <button class="btn danger" onclick="removeSelectedMannequin()" title="删除当前人偶（快捷键 Delete）"><span class="glyph">🗑</span>删除</button>
+            <button class="btn" onclick="resetAllMannequins()" title="清空场景，只保留一个人偶"><span class="glyph">↺</span>清空</button>
+          </div>
+        </div>
+
         <div class="xf-userbar">
           <span id="user-email"></span>
           <button id="btn-logout" class="tb-btn">退出</button>
         </div>
       </div>
-    <div id="param-container"></div>
-    <!-- ============ 人偶调整 ============ -->
-    <div id="mannequin-control-panel">
-      <h3>🕺 人偶调整 <span>（作用于当前人偶）</span></h3>
-      <div class="ctrl-row"><span>移动</span>
-        <button class="mv-btn" onclick="moveSelectedMannequin('x',-0.2)">X−</button>
-        <button class="mv-btn" onclick="moveSelectedMannequin('x',0.2)">X＋</button>
-        <button class="mv-btn" onclick="moveSelectedMannequin('z',-0.2)">Z−</button>
-        <button class="mv-btn" onclick="moveSelectedMannequin('z',0.2)">Z＋</button>
-        <button class="mv-btn" onclick="moveSelectedMannequin('y',0.2)">Y＋</button>
-        <button class="mv-btn" onclick="moveSelectedMannequin('y',-0.2)">Y−</button>
+
+      <!-- 参数分组（由 buildUI 动态生成） -->
+      <div id="param-container"></div>
+
+      <!-- 多角度出图入口 -->
+      <div class="cta-card">
+        <h3>🎞 多角度出图</h3>
+        <p>一次生成 3–12 个机位（可叠加俯仰），导出拼图联系表或逐张原图，直接用于分镜与提案。</p>
+        <button class="btn primary" onclick="openExportPanel()">打开出图面板</button>
       </div>
-      <div class="ctrl-row"><span>旋转</span>
-        <button class="mv-btn" onclick="rotateSelectedMannequin('y',15)">↺ 左转</button>
-        <button class="mv-btn" onclick="rotateSelectedMannequin('y',-15)">↻ 右转</button>
-        <button class="mv-btn" onclick="rotateSelectedMannequin('x',10)">前倾</button>
-        <button class="mv-btn" onclick="rotateSelectedMannequin('x',-10)">后仰</button>
+
+      <!-- ============ 人偶调整 ============ -->
+      <div class="card" id="mannequin-control-panel">
+        <h3>🕺 人偶调整 <span class="tag">仅作用于当前人偶</span></h3>
+
+        <div style="font-size:.66rem;color:var(--muted);margin-bottom:5px;">位置移动（米）</div>
+        <div class="grid-3">
+          <button class="mv-btn" onclick="moveSelectedMannequin('x',-0.2)">X −</button>
+          <button class="mv-btn" onclick="moveSelectedMannequin('x',0.2)">X ＋</button>
+          <button class="mv-btn" onclick="moveSelectedMannequin('y',0.2)">Y ＋</button>
+          <button class="mv-btn" onclick="moveSelectedMannequin('y',-0.2)">Y −</button>
+          <button class="mv-btn" onclick="moveSelectedMannequin('z',-0.2)">Z −</button>
+          <button class="mv-btn" onclick="moveSelectedMannequin('z',0.2)">Z ＋</button>
+        </div>
+
+        <div style="font-size:.66rem;color:var(--muted);margin:10px 0 5px;">旋转（15° / 10°）</div>
+        <div class="grid-2">
+          <button class="mv-btn" onclick="rotateSelectedMannequin('y',15)">↺ 左转</button>
+          <button class="mv-btn" onclick="rotateSelectedMannequin('y',-15)">↻ 右转</button>
+          <button class="mv-btn" onclick="rotateSelectedMannequin('x',10)">⤓ 前倾</button>
+          <button class="mv-btn" onclick="rotateSelectedMannequin('x',-10)">⤒ 后仰</button>
+        </div>
+
+        <div style="font-size:.66rem;color:var(--muted);margin:10px 0 5px;display:flex;align-items:center;">
+          <span>缩放</span><span class="mv-size-val" id="mannequin-size-val">1.00</span>
+        </div>
+        <div class="grid-2">
+          <button class="mv-btn" onclick="sizeSelectedMannequin(-0.1)">− 缩小</button>
+          <button class="mv-btn" onclick="sizeSelectedMannequin(0.1)">＋ 放大</button>
+        </div>
+
+        <button class="mv-reset" onclick="resetSelectedMannequinTransform()">重置该人偶的位置 / 旋转 / 缩放</button>
       </div>
-      <div class="ctrl-row"><span>大小</span>
-        <button class="mv-btn" onclick="sizeSelectedMannequin(-0.1)">− 缩小</button>
-        <button class="mv-btn" onclick="sizeSelectedMannequin(0.1)">＋ 放大</button>
-        <span class="mv-size-val" id="mannequin-size-val">1.00</span>
+
+      <!-- ============ 镜头运动 ============ -->
+      <div class="card" id="camera-move-panel">
+        <h3>🤖 镜头运动 <span class="tag">带动画过渡</span></h3>
+        <div class="grid-3">
+          <button class="mv-btn" onclick="cameraMove('dollyIn')">🎥 推近</button>
+          <button class="mv-btn" onclick="cameraMove('dollyOut')">🎥 拉远</button>
+          <button class="mv-btn" onclick="cameraMove('zoomIn')">🔍 变焦推</button>
+          <button class="mv-btn" onclick="cameraMove('zoomOut')">🔍 变焦拉</button>
+          <button class="mv-btn" onclick="cameraMove('panLeft')">⬅ 左摇</button>
+          <button class="mv-btn" onclick="cameraMove('panRight')">➡ 右摇</button>
+          <button class="mv-btn" onclick="cameraMove('truckLeft')">⇦ 左移</button>
+          <button class="mv-btn" onclick="cameraMove('truckRight')">⇨ 右移</button>
+          <button class="mv-btn" onclick="cameraMove('orbit')">🌀 环绕</button>
+          <button class="mv-btn" onclick="cameraMove('craneUp')">⬆ 升起</button>
+          <button class="mv-btn" onclick="cameraMove('craneDown')">⬇ 降下</button>
+          <button class="mv-btn" onclick="resetCamera()">↺ 重置</button>
+        </div>
+
+        <div style="font-size:.66rem;color:var(--muted);margin:11px 0 5px;">机位快捷切换（水平角度）</div>
+        <div class="grid-4">
+          <button class="mv-btn" onclick="xfQuickAngle('正面')">正面</button>
+          <button class="mv-btn" onclick="xfQuickAngle('右侧3/4')">右3/4</button>
+          <button class="mv-btn" onclick="xfQuickAngle('侧面')">侧面</button>
+          <button class="mv-btn" onclick="xfQuickAngle('背面')">背面</button>
+        </div>
+        <div style="font-size:.66rem;color:var(--muted);margin:9px 0 5px;">机位快捷切换（高度）</div>
+        <div class="grid-4">
+          <button class="mv-btn" onclick="xfQuickHeight('鸟瞰')">鸟瞰</button>
+          <button class="mv-btn" onclick="xfQuickHeight('俯拍')">俯拍</button>
+          <button class="mv-btn" onclick="xfQuickHeight('平视')">平视</button>
+          <button class="mv-btn" onclick="xfQuickHeight('仰拍')">仰拍</button>
+        </div>
       </div>
-      <button class="mv-reset" onclick="resetSelectedMannequinTransform()">重置人偶变换</button>
+      <!-- ============ 项目文件 / 参考图 ============ -->
+      <div class="card" id="file-panel">
+        <h3>📁 项目文件与参考图 <span class="tag">仅在本机处理</span></h3>
+        <div class="grid-3">
+          <button class="mv-btn" onclick="exportParams()" title="导出全部参数为 JSON">💾 保存参数</button>
+          <button class="mv-btn" onclick="document.getElementById('import-file').click()" title="从 JSON 载入参数">📂 载入参数</button>
+          <button class="mv-btn" onclick="document.getElementById('ref-image-input').click()" title="叠加参考图（半透明）">🖼 参考图</button>
+        </div>
+        <div id="ref-controls-inline" style="display:none;">
+          <div style="display:flex;align-items:center;gap:9px;margin-top:11px;">
+            <span style="font-size:.66rem;color:var(--muted);white-space:nowrap;">透明度</span>
+            <input type="range" id="ref-opacity" min="10" max="90" value="40" oninput="setRefOpacity(this.value)">
+          </div>
+          <div class="grid-2" style="margin-top:7px;">
+            <button class="mv-btn" onclick="toggleRefImage()">隐藏 / 显示</button>
+            <button class="mv-btn" onclick="removeRefImage()">移除参考图</button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- ============ 镜头运动 ============ -->
-    <div id="camera-move-panel">
-      <h3>🤖 镜头运动</h3>
-      <div class="mv-grid">
-        <button class="mv-btn" onclick="cameraMove('dollyIn')">推近</button>
-        <button class="mv-btn" onclick="cameraMove('dollyOut')">拉远</button>
-        <button class="mv-btn" onclick="cameraMove('panLeft')">左摇</button>
-        <button class="mv-btn" onclick="cameraMove('panRight')">右摇</button>
-        <button class="mv-btn" onclick="cameraMove('truckLeft')">左移</button>
-        <button class="mv-btn" onclick="cameraMove('truckRight')">右移</button>
-        <button class="mv-btn" onclick="cameraMove('craneUp')">升起</button>
-        <button class="mv-btn" onclick="cameraMove('craneDown')">降下</button>
-        <button class="mv-btn" onclick="cameraMove('orbit')">环绕</button>
-        <button class="mv-btn" onclick="cameraMove('zoomIn')">变焦推</button>
-        <button class="mv-btn" onclick="cameraMove('zoomOut')">变焦拉</button>
+    <!-- ============ 视口 ============ -->
+    <div id="viewport">
+      <div id="toolbar">
+        <div class="tool-group">
+          <button class="btn" onclick="resetCamera()" title="回到默认三维视角">🎥 重置视角</button>
+          <button class="btn" onclick="xfToggleGrid()" id="btn-grid-toggle" title="显示 / 隐藏构图辅助线与画幅框">🧭 辅助线</button>
+        </div>
+        <div class="tool-sep"></div>
+        <div class="tool-group">
+          <button class="btn primary" onclick="addMannequin()" title="新增人偶">➕ 人偶</button>
+          <button class="btn" onclick="removeSelectedMannequin()" title="删除当前选中的人偶">🗑 删除</button>
+          <button class="btn" onclick="openModelLibrary()" title="打开模型资产库">📦 模型库</button>
+        </div>
+        <div class="tool-sep"></div>
+        <div class="tool-group">
+          <button class="btn" onclick="openExportPanel()" title="多机位批量出图">🎞 多角度出图</button>
+          <button class="btn" onclick="xfScreenshot()" title="按当前机位导出一张图片">📸 单张截图</button>
+        </div>
       </div>
-      <div class="ctrl-row" style="margin-top:6px;">
-        <button class="mv-btn" onclick="resetCamera()">重置镜头</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- ============ Viewport ============ -->
-  <div id="viewport">
-    <div id="toolbar">
-      <button class="btn" onclick="resetCamera()">重置视角</button>
-      <button class="btn" onclick="addMannequin()" style="background:var(--accent);color:#fff;border-color:var(--accent)">+ 人偶</button>
-      <button class="btn" onclick="removeLastMannequin()">- 人偶</button>
-      <button class="btn" onclick="document.getElementById('ref-image-input').click()">📷 参考图</button>
       <input type="file" id="ref-image-input" accept="image/*" class="hidden" onchange="loadReferenceImage(event)">
-      <button class="btn" onclick="exportParams()">💾 保存参数</button>
-      <button class="btn" onclick="openModelLibrary()">📦 模型库</button>
-      <button class="btn" onclick="document.getElementById('import-file').click()">加载参数</button>
       <input type="file" id="import-file" accept=".json" class="hidden" onchange="importParams(event)">
-    </div>
-    <div id="ref-image-overlay"></div>
-    <div id="ref-controls">
-      <label>透明度</label>
-      <input type="range" id="ref-opacity" min="10" max="90" value="40" oninput="setRefOpacity(this.value)">
-      <button class="btn" onclick="toggleRefImage()">隐藏/显示</button>
-      <button class="btn" onclick="removeRefImage()">移除</button>
-    </div>
-    <div id="aspect-frame"></div>
-    <canvas id="grid-overlay"></canvas>
-    <div id="info-bar">
-      <span class="shot-info" id="shot-info">中景 · 平视 · 正面 · 50mm · 16:9</span>
-    </div>
-    <div id="toast"></div>
-  </div>
-</div>
 
-<!-- ============ 右侧：姿势预设面板（约 30 种，应用到当前选中人偶） ============ -->
-<div id="pose-panel">
-  <div class="pose-header">
-    <span>姿势预设</span>
-    <span id="pose-count" class="pose-count"></span>
+      <div id="ref-image-overlay"></div>
+      <div id="aspect-frame"></div>
+      <canvas id="grid-overlay"></canvas>
+      <div id="info-bar">
+        <span class="shot-info" id="shot-info">中景 · 平视 · 正面 · 50mm · 16:9</span>
+      </div>
+      <div id="nav-hint">
+        <span>左键旋转</span><span>滚轮缩放</span><span>右键平移</span>
+      </div>
+      <div id="toast"></div>
+    </div>
   </div>
-  <div id="pose-current" class="pose-current">人偶#1：默认</div>
-  <div id="pose-grid"></div>
-</div>
 
+  <!-- ============ 右侧：姿势预设面板 ============ -->
+  <div id="pose-panel">
+    <div class="pose-header">
+      <span>💃 姿势预设</span>
+      <span id="pose-count" class="pose-count"></span>
+    </div>
+    <div class="pose-search">
+      <input type="text" id="pose-search" placeholder="搜索姿势（如：抱胸 / 挥手）" oninput="xfFilterPoses(this.value)">
+    </div>
+    <div id="pose-current" class="pose-current">人偶#1：默认</div>
+    <div id="pose-grid"></div>
+  </div>
+
+<!-- ============ 主程序（经典脚本，THREE 相关初始化推迟到 load） ============ -->
 <!-- ============ 主程序（经典脚本，THREE 相关初始化推迟到 load） ============ -->
 <script>
 'use strict';
@@ -1032,29 +1251,81 @@ function refreshSkinned(root) {
 }
 
 // 构建右侧姿势面板
+// 姿势分组（按预设编号归类，便于快速定位）
+function xfPoseGroup(p) {
+  const n = parseInt(String(p.id).replace('p', ''), 10) || 0;
+  if (n <= 5) return '基础站姿';
+  if (n <= 17) return '行走 · 奔跑 · 跳跃';
+  if (n <= 27) return '动作表演';
+  if (n <= 30) return '坐 · 卧';
+  return '对话手势';
+}
+
+// 构建右侧姿势面板（分组 + 搜索）
 function buildPosePanel() {
   const grid = document.getElementById('pose-grid');
   const count = document.getElementById('pose-count');
   if (!grid) return;
   grid.innerHTML = '';
   if (count) count.textContent = '共 ' + POSE_PRESETS_GLB.length + ' 种';
-  POSE_PRESETS_GLB.forEach((p, i) => {
+  let lastGroup = null;
+  POSE_PRESETS_GLB.forEach(function (p) {
+    const g = xfPoseGroup(p);
+    if (g !== lastGroup) {
+      lastGroup = g;
+      const h = document.createElement('div');
+      h.className = 'pose-group';
+      h.textContent = g;
+      grid.appendChild(h);
+    }
     const b = document.createElement('button');
     b.className = 'pose-btn';
     b.dataset.id = p.id;
-    b.textContent = (i + 1) + '.' + p.name;
-    b.title = '应用到当前选中的人偶';
-    b.onclick = () => {
+    b.dataset.name = p.name;
+    b.textContent = p.name;
+    b.title = '应用到当前选中人偶（' + p.id + '）';
+    b.onclick = function () {
       const m = mannequins[selectedMannequinIdx];
-      if (!m) return;
+      if (!m) { showToast('请先选择一个人偶'); return; }
       applyPoseToMannequin(m, p);
       updatePoseHighlight();
-      if (typeof showToast === 'function') showToast('已应用姿势「' + p.name + '」');
+      showToast('已应用姿势「' + p.name + '」');
     };
     grid.appendChild(b);
   });
   updatePoseHighlight();
+  const q = document.getElementById('pose-search');
+  xfFilterPoses(q ? q.value : '');
 }
+
+// 姿势搜索过滤（同时隐藏无结果的分组标题）
+function xfFilterPoses(kw) {
+  const q = String(kw || '').trim().toLowerCase();
+  let shown = 0;
+  document.querySelectorAll('#pose-grid .pose-btn').forEach(function (b) {
+    const hit = !q || (b.dataset.name || '').toLowerCase().indexOf(q) >= 0;
+    b.style.display = hit ? '' : 'none';
+    if (hit) shown++;
+  });
+  const grid = document.getElementById('pose-grid');
+  if (grid) {
+    let curTitle = null, curHas = false;
+    Array.prototype.slice.call(grid.children).forEach(function (el) {
+      if (el.classList.contains('pose-group')) {
+        if (curTitle) curTitle.style.display = curHas ? '' : 'none';
+        curTitle = el; curHas = false;
+      } else if (el.classList.contains('pose-btn') && el.style.display !== 'none') {
+        curHas = true;
+      }
+    });
+    if (curTitle) curTitle.style.display = curHas ? '' : 'none';
+  }
+  const count = document.getElementById('pose-count');
+  if (count) {
+    count.textContent = q ? (shown + ' / ' + POSE_PRESETS_GLB.length) : ('共 ' + POSE_PRESETS_GLB.length + ' 种');
+  }
+}
+
 
 // 高亮当前选中人偶的姿势
 function updatePoseHighlight() {
@@ -1251,7 +1522,8 @@ function initScene() {
   camera.position.set(-2.2, 1.5, -2.2);
   camera.lookAt(0, 1.0, 0);
 
-  renderer = new THREE.WebGLRenderer({ antialias:true, preserveDrawingBuffer:true });
+  // alpha:true —— 支持「透明背景」出图；scene.background 存在时仍为不透明渲染，正常画面不受影响
+  renderer = new THREE.WebGLRenderer({ antialias:true, preserveDrawingBuffer:true, alpha:true });
   renderer.setSize(w, h);
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.shadowMap.enabled = true;
@@ -1430,10 +1702,11 @@ function applyParams() {
     mannequins.push(clone);
   }
   while (mannequins.length > count) {
-    const m = mannequins.pop();
-    scene.remove(m);
+    // 【修复】必须用 disposeMannequin 清理：连同头顶编号标签的 DOM 一起移除，
+    // 否则 scene.remove 后标签仍冻结在画面上（原 bug 根因）
+    disposeMannequin(mannequins.pop());
     if (selectedMannequinIdx >= mannequins.length) {
-      selectedMannequinIdx = mannequins.length - 1;
+      selectedMannequinIdx = Math.max(0, mannequins.length - 1);
     }
   }
 
@@ -1472,6 +1745,12 @@ function applyParams() {
 
   // --- Apply Joint Overrides ---
   applyJoints();
+
+  // --- 镜头参数 → 相机 ---
+  // 【修复】原 applyCameraShot() 定义后从未被任何地方调用，导致「景别 / 机位高度 /
+  // 拍摄角度 / 焦距 / 画幅比例 / 荷兰角 / 距离微调」等镜头参数在画面上毫无反应。
+  const _shotSig = xfShotSignature();
+  if (_shotSig !== _xfShotSig) { _xfShotSig = _shotSig; applyCameraShot(); }
 
   // --- Update Info Bar ---
   updateInfoBar();
@@ -1598,8 +1877,11 @@ function applyCameraShot() {
   const targetY = PARAMS.targetHeight.value;
 
   const az = THREE.MathUtils.degToRad(azDeg);
+  const _vp = document.getElementById('viewport');
   camera.fov = fov;
-  camera.aspect = aspect;
+  // 屏幕按视口比例渲染（避免画面被拉伸）；画幅比例由取景框与出图裁切体现，
+  // 出图时再按画幅比例设置相机比例，保证所见即所得。
+  camera.aspect = (_vp && _vp.clientHeight > 0) ? (_vp.clientWidth / _vp.clientHeight) : aspect;
   camera.updateProjectionMatrix();
 
   // Position camera around the subject
@@ -1741,18 +2023,23 @@ function selectMannequin(idx) {
 
 function updateMannequinSelector() {
   const sel = document.getElementById('mannequin-select');
-  if (!sel) return;
-  sel.innerHTML = '';
-  mannequins.forEach((m, i) => {
-    const o = document.createElement('option');
-    o.value = i;
-    const palette = MANNEQUIN_PALETTE[m.userData.paletteIdx % MANNEQUIN_PALETTE.length];
-    const hex = '#' + palette.wood.toString(16).padStart(6, '0');
-    o.textContent = '人偶 #' + (i + 1) + ' [' + hex + ']';
-    if (i === selectedMannequinIdx) o.selected = true;
-    sel.appendChild(o);
-  });
+  if (sel) {
+    sel.innerHTML = '';
+    mannequins.forEach((m, i) => {
+      const o = document.createElement('option');
+      o.value = i;
+      const palette = MANNEQUIN_PALETTE[m.userData.paletteIdx % MANNEQUIN_PALETTE.length];
+      const hex = '#' + palette.wood.toString(16).padStart(6, '0');
+      o.textContent = '#' + String(i + 1).padStart(3, '0') + '　人偶 ' + (i + 1) + '　' + hex;
+      if (i === selectedMannequinIdx) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.disabled = mannequins.length === 0;
+  }
+  const badge = document.getElementById('mannequin-count-badge');
+  if (badge) badge.textContent = '共 ' + mannequins.length + ' 个';
 }
+
 
 // ====================================================================
 //  Add / Remove Mannequin
@@ -1787,29 +2074,10 @@ function addMannequin() {
 }
 
 function removeLastMannequin() {
-  if (mannequins.length <= 1) {
-    showToast('至少保留一个人偶');
-    return;
-  }
-  const m = mannequins.pop();
-  scene.remove(m);
-
-  if (selectedMannequinIdx >= mannequins.length) {
-    selectedMannequinIdx = mannequins.length - 1;
-    loadMannequinParamsToUI(selectedMannequinIdx);
-  }
-
-  const count = mannequins.length;
-  PARAMS.charCount.value = count;
-  const sel = document.getElementById('param-charCount');
-  if (sel) sel.value = count;
-  updateParamDisplay('charCount');
-
-  updateMannequinSelector();
-  renumberMannequins();
-  applyParams();
-  showToast('已移除人偶，当前 ' + count + ' 个');
+  // 统一走 removeMannequinAt：确保标签 DOM、选中索引与数量参数同步
+  return removeMannequinAt(mannequins.length - 1);
 }
+
 
 // ====================================================================
 //  Camera Reset
@@ -1876,6 +2144,7 @@ function showToast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
 }
+window.toast = showToast;   // 供框架扩展脚本（模型库等）统一提示
 
 // ====================================================================
 //  Reference Image Overlay
@@ -1889,7 +2158,7 @@ function loadReferenceImage(e) {
     const overlay = document.getElementById('ref-image-overlay');
     overlay.style.backgroundImage = 'url(' + ev.target.result + ')';
     overlay.style.display = 'block';
-    document.getElementById('ref-controls').style.display = 'flex';
+    xfShowRefControls(true);
     _refImageVisible = true;
     showToast('参考图已加载 - 调整不透明度至合适位置');
   };
@@ -1907,7 +2176,7 @@ function removeRefImage() {
   const overlay = document.getElementById('ref-image-overlay');
   overlay.style.backgroundImage = '';
   overlay.style.display = 'none';
-  document.getElementById('ref-controls').style.display = 'none';
+  xfShowRefControls(false);
   _refImageVisible = true;
   showToast('参考图已移除');
 }
@@ -1915,30 +2184,53 @@ function removeRefImage() {
 // ====================================================================
 //  UI Builder
 // ====================================================================
+// 参数分组元信息（图标 / 说明 / 默认折叠）
+const XF_SECTION_META = {
+  '镜头参数': { ico: '🎬', desc: '景别 / 机位 / 角度 / 焦距 / 画幅' },
+  '人物参数': { ico: '🧍', desc: '姿势 / 朝向 / 数量 / 间距' },
+  '灯光参数': { ico: '💡', desc: '光位 / 强度 / 色温 / 阴影' },
+  '场景参数': { ico: '🏔', desc: '背景 / 地面 / 雾气 / 道具' },
+  '输出参数': { ico: '📤', desc: '出图分辨率 / 格式 / 透明背景' }
+};
+const XF_SECTION_ORDER = ['镜头参数', '人物参数', '灯光参数', '场景参数', '输出参数'];
+const XF_SECTION_COLLAPSED = { '场景参数': true, '输出参数': true };
+
 function buildUI() {
   const container = document.getElementById('param-container');
-  const sections = {};
+  if (!container) return;
+  container.innerHTML = '';
+  const groups = {}, order = [];
   for (const k in PARAMS) {
     const p = PARAMS[k];
     if (GLB_MODE && (p.section.startsWith('关节') || p.section === '人物微调' || k === 'posePreset')) continue;
-    if (!sections[p.section]) {
-      sections[p.section] = document.createElement('div');
-      sections[p.section].className = 'section';
-      const header = document.createElement('div');
-      header.className = 'section-header';
-      header.innerHTML = `<span>${p.section}</span><span class="arrow">▼</span>`;
-      header.onclick = function() { sections[p.section].classList.toggle('collapsed'); };
-      const body = document.createElement('div');
-      body.className = 'section-body';
-      sections[p.section].appendChild(header);
-      sections[p.section].appendChild(body);
-      sections[p.section + '_body'] = body;
-      container.appendChild(sections[p.section]);
-    }
-    const row = createParamRow(k, p);
-    sections[p.section + '_body'].appendChild(row);
+    if (!groups[p.section]) { groups[p.section] = []; order.push(p.section); }
+    groups[p.section].push(k);
   }
+  order.sort(function (a, b) {
+    const ia = XF_SECTION_ORDER.indexOf(a), ib = XF_SECTION_ORDER.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+  order.forEach(function (sec) {
+    const meta = XF_SECTION_META[sec] || { ico: '⚙️', desc: '' };
+    const box = document.createElement('div');
+    box.className = 'section' + (XF_SECTION_COLLAPSED[sec] ? ' collapsed' : '');
+    const head = document.createElement('div');
+    head.className = 'section-header';
+    head.innerHTML = '<span class="sec-ico">' + meta.ico + '</span>' +
+      '<span class="sec-txt">' + sec + '<small>' + meta.desc + '</small></span>' +
+      '<span class="arrow">▼</span>';
+    head.onclick = function () { box.classList.toggle('collapsed'); };
+    const body = document.createElement('div');
+    body.className = 'section-body';
+    groups[sec].forEach(function (k) { body.appendChild(createParamRow(k, PARAMS[k])); });
+    box.appendChild(head);
+    box.appendChild(body);
+    container.appendChild(box);
+  });
+  const gb = document.getElementById('btn-grid-toggle');
+  if (gb) gb.classList.toggle('active', !!PARAMS.showGrid.value);
 }
+
 
 function createParamRow(key, p) {
   const row = document.createElement('div');
@@ -2161,6 +2453,736 @@ function cameraMove(type) {
 // ====================================================================
 //  Animation Loop
 // ====================================================================
+// ====================================================================
+//  【修复】人偶删除：彻底清理（含头顶编号标签的 DOM 节点）
+//  根因：CSS2DObject 的标签是独立 DOM 元素，Three.js 的 scene.remove()
+//  不会移除它，而 CSS2DRenderer 只更新"仍在场景内"的对象 —— 被移出的
+//  标签会永久冻结在画面上，表现为"删掉人偶后标签还在"。
+// ====================================================================
+function disposeMannequin(m) {
+  if (!m) return;
+  try {
+    // 1) 移除该人偶所有 CSS2D 标签的 DOM 节点
+    if (m.traverse) {
+      m.traverse(function (o) {
+        if (o && o.isCSS2DObject && o.element && o.element.parentNode) {
+          o.element.parentNode.removeChild(o.element);
+        }
+      });
+    }
+    if (m.userData && m.userData.label && m.userData.label.parentNode) {
+      m.userData.label.parentNode.removeChild(m.userData.label);
+      m.userData.label = null;
+    }
+    // 2) 停止动画混合器，避免残留 mixer 引用
+    if (m.userData && m.userData.mixer) {
+      try { m.userData.mixer.stopAllAction(); m.userData.mixer.uncacheRoot(m); } catch (e) {}
+      m.userData.mixer = null;
+    }
+    // 3) 从场景中移除
+    if (m.parent) m.parent.remove(m);
+    // 说明：人偶由 SkeletonUtils.clone 克隆，几何与材质和缓存模型共享，
+    //       此处若 dispose 会破坏其余人偶，因此只做引用清理。
+  } catch (e) {
+    console.warn('disposeMannequin 异常（已忽略）', e);
+  }
+}
+
+// 同步"人偶数量"相关 UI（下拉框 / 数量参数 / 角标）
+function syncMannequinCountUI() {
+  const count = mannequins.length;
+  PARAMS.charCount.value = count;
+  const sel = document.getElementById('param-charCount');
+  if (sel) sel.value = count;
+  updateParamDisplay('charCount');
+  const badge = document.getElementById('mannequin-count-badge');
+  if (badge) badge.textContent = '共 ' + count + ' 个';
+}
+
+// 删除指定序号的人偶（索引会随之后移，需同步修正选中项）
+function removeMannequinAt(idx) {
+  idx = parseInt(idx, 10);
+  if (mannequins.length <= 1) { showToast('至少保留一个人偶'); return false; }
+  if (isNaN(idx) || idx < 0 || idx >= mannequins.length) return false;
+  saveCurrentParamsToMannequin();
+  const removed = mannequins.splice(idx, 1)[0];
+  disposeMannequin(removed);
+  if (selectedMannequinIdx > idx) selectedMannequinIdx--;
+  if (selectedMannequinIdx > mannequins.length - 1) selectedMannequinIdx = mannequins.length - 1;
+  if (selectedMannequinIdx < 0) selectedMannequinIdx = 0;
+  loadMannequinParamsToUI(selectedMannequinIdx);
+  syncMannequinCountUI();
+  updateMannequinSelector();
+  renumberMannequins();
+  applyParams();
+  updatePoseHighlight();
+  showToast('已删除人偶 #' + (idx + 1) + '，当前 ' + mannequins.length + ' 个');
+  return true;
+}
+
+function removeSelectedMannequin() {
+  return removeMannequinAt(selectedMannequinIdx);
+}
+
+// 复制当前人偶（含位置、缩放、姿势与个体参数）
+function duplicateSelectedMannequin() {
+  const src = getSelectedMannequin();
+  if (!src) { showToast('请先选择一个人偶'); return; }
+  if (mannequins.length >= 100) { showToast('最多支持 100 个人偶'); return; }
+  saveCurrentParamsToMannequin();
+  const clone = createMannequin(mannequins.length);
+  clone.userData.size = src.userData.size || 1;
+  const st = src.userData.transform || { x: 0, y: 0, z: 0, rotY: 0, rotX: 0 };
+  clone.userData.transform = { x: st.x, y: st.y, z: st.z, rotY: st.rotY, rotX: st.rotX };
+  clone.userData.params = Object.assign({}, getMannequinParams(src));
+  const srcPose = src.userData.currentPose;
+  scene.add(clone);
+  mannequins.push(clone);
+  const preset = POSE_PRESETS_GLB.find(function (x) { return x.id === srcPose; });
+  if (preset) applyPoseToMannequin(clone, preset);
+  selectedMannequinIdx = mannequins.length - 1;
+  syncMannequinCountUI();
+  updateMannequinSelector();
+  renumberMannequins();
+  loadMannequinParamsToUI(selectedMannequinIdx);
+  applyParams();
+  updatePoseHighlight();
+  showToast('已复制人偶 → #' + mannequins.length);
+}
+
+// 清空场景（仅保留 1 个默认人偶）
+function resetAllMannequins() {
+  saveCurrentParamsToMannequin();
+  while (mannequins.length > 1) {
+    disposeMannequin(mannequins.pop());
+  }
+  const first = mannequins[0];
+  if (first) {
+    first.userData.transform = { x: 0, y: 0, z: 0, rotY: 0, rotX: 0 };
+    first.userData.size = 1;
+    first.userData.params = makeDefaultPose(DEMO_POSES[0]);
+    const p01 = POSE_PRESETS_GLB.find(function (x) { return x.id === 'p01'; });
+    if (p01) applyPoseToMannequin(first, p01);
+  }
+  selectedMannequinIdx = 0;
+  syncMannequinCountUI();
+  updateMannequinSelector();
+  renumberMannequins();
+  loadMannequinParamsToUI(0);
+  applyParams();
+  updatePoseHighlight();
+  showToast('场景已重置（保留 1 个默认人偶）');
+}
+
+// ====================================================================
+//  镜头参数 → 相机同步
+//  修复：原 applyCameraShot() 定义后从未被调用，导致「景别 / 机位高度 /
+//  拍摄角度 / 焦距 / 画幅 / 荷兰角 / 距离微调」等参数调到画面上没有反应。
+// ====================================================================
+const XF_SHOT_KEYS = ['shotSize', 'cameraHeight', 'cameraAngle', 'focalLength', 'aspectRatio',
+  'dutchTilt', 'cameraDistance', 'cameraPanX', 'cameraPanY', 'cameraTiltY', 'targetHeight', 'exposure'];
+let _xfShotSig = null;
+
+function xfShotSignature() {
+  return XF_SHOT_KEYS.map(function (k) { return PARAMS[k] ? PARAMS[k].value : ''; }).join('|');
+}
+
+// 快捷：切换水平机位角度（不改动其它参数）
+function xfQuickAngle(name) {
+  if (!(name in CAMERA_ANGLE_AZ)) return;
+  PARAMS.cameraAngle.value = name;
+  const el = document.getElementById('param-cameraAngle');
+  if (el) el.value = name;
+  updateParamDisplay('cameraAngle');
+  applyParams();
+  showToast('机位角度：' + name);
+}
+
+// 快捷：切换机位高度
+function xfQuickHeight(name) {
+  if (!(name in CAMERA_HEIGHT_Y)) return;
+  PARAMS.cameraHeight.value = name;
+  const el = document.getElementById('param-cameraHeight');
+  if (el) el.value = name;
+  updateParamDisplay('cameraHeight');
+  applyParams();
+  showToast('机位高度：' + name);
+}
+
+// 快捷：显示/隐藏构图辅助线与画幅框
+function xfToggleGrid() {
+  PARAMS.showGrid.value = !PARAMS.showGrid.value;
+  const el = document.getElementById('param-showGrid');
+  if (el) el.checked = PARAMS.showGrid.value;
+  updateParamDisplay('showGrid');
+  const btn = document.getElementById('btn-grid-toggle');
+  if (btn) btn.classList.toggle('active', !!PARAMS.showGrid.value);
+  updateAspectFrame();
+  updateGridOverlay();
+}
+
+// ====================================================================
+//  多角度出图（多机位批量渲染导出）
+//  说明：出图遵循左侧「镜头参数」的景别 / 焦距 / 画幅，不跟随手动拖拽视角；
+//        「单张截图」则完全按当前屏幕视角出图。
+// ====================================================================
+const XF_ANGLE_SETS = {
+  '三视角': [0, 45, 90],
+  '四视图': [0, 90, 180, 270],
+  '六方位': [0, 60, 120, 180, 240, 300],
+  '八方位': [0, 45, 90, 135, 180, 225, 270, 315],
+  '十二方位': [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]
+};
+const XF_ANGLE_NAMES = {
+  0: '背面', 45: '左后3/4', 90: '左侧', 135: '左侧3/4',
+  180: '正面', 225: '右侧3/4', 270: '右侧', 315: '右后3/4'
+};
+const XF_ELEV_LIST = [
+  { k: '平视', v: 0 }, { k: '俯视15°', v: 15 }, { k: '俯视30°', v: 30 },
+  { k: '俯视45°', v: 45 }, { k: '仰视15°', v: -15 }, { k: '仰视30°', v: -30 }
+];
+const XF_LONGSIDE = [1280, 1920, 2560, 3840];
+const XF_MODES = [['sheet', '拼图联系表'], ['files', '逐张下载']];
+
+const XF_EXPORT = {
+  preset: '四视图',
+  angles: [0, 90, 180, 270],
+  elevs: [0],
+  longSide: 1920,
+  format: 'PNG',
+  transparent: false,
+  onlyMannequin: false,
+  mode: 'sheet',
+  labels: true,
+  running: false
+};
+let xfExportModal = null;
+
+function xfAngleName(a) { return XF_ANGLE_NAMES[a] || (a + '°'); }
+function xfElevName(v) {
+  const it = XF_ELEV_LIST.find(function (e) { return e.v === v; });
+  return it ? it.k : (v + '°');
+}
+function xfMime() { return XF_EXPORT.format === 'JPG' ? 'image/jpeg' : 'image/png'; }
+function xfSanitize(s) { return String(s).replace(/[\/\\:*?"<>|\s·]+/g, '_'); }
+function xfNextFrame() {
+  return new Promise(function (r) { requestAnimationFrame(function () { setTimeout(r, 0); }); });
+}
+function xfTimeStamp() {
+  const d = new Date(), p = function (n) { return String(n).padStart(2, '0'); };
+  return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '_' +
+    p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+}
+function xfDownload(url, filename) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function () { if (a.parentNode) a.parentNode.removeChild(a); }, 0);
+}
+
+// 出图分辨率：长边像素 + 当前画幅比例
+function xfExportSize() {
+  const aspect = ASPECT_RATIO[PARAMS.aspectRatio.value] || (16 / 9);
+  const L = XF_EXPORT.longSide;
+  let w, h;
+  if (aspect >= 1) { w = L; h = Math.round(L / aspect); }
+  else { h = L; w = Math.round(L * aspect); }
+  return { w: w, h: h, aspect: aspect };
+}
+
+// 生成出图清单（角度 × 俯仰）
+function xfPlanList() {
+  const list = [];
+  const angles = XF_EXPORT.angles.slice().sort(function (a, b) { return a - b; });
+  const elevs = XF_EXPORT.elevs.slice().sort(function (a, b) { return b - a; });
+  elevs.forEach(function (e) {
+    angles.forEach(function (a) {
+      list.push({
+        az: a, elev: e,
+        label: xfAngleName(a) + ' ' + a + '°' + (e === 0 ? '' : ' · ' + xfElevName(e))
+      });
+    });
+  });
+  return list;
+}
+
+// 拼图画板
+function xfBuildSheet(n, w, h) {
+  const cols = n <= 1 ? 1 : n <= 2 ? 2 : n <= 4 ? 2 : n <= 9 ? 3 : 4;
+  const rows = Math.ceil(n / cols);
+  const gap = 10, pad = 14, labelH = XF_EXPORT.labels ? 24 : 0;
+  const maxW = 6000;
+  const baseLong = Math.max(w, h);
+  const availW = maxW - pad * 2 - (cols - 1) * gap;
+  const cellLong = Math.max(320, Math.min(baseLong, Math.floor(availW / cols)));
+  const s = cellLong / baseLong;
+  const cellW = Math.max(1, Math.round(w * s));
+  const cellH = Math.max(1, Math.round(h * s));
+  const cvs = document.createElement('canvas');
+  cvs.width = pad * 2 + cols * cellW + (cols - 1) * gap;
+  cvs.height = pad * 2 + rows * (cellH + labelH) + (rows - 1) * gap;
+  const ctx = cvs.getContext('2d');
+  ctx.fillStyle = '#12100c';
+  ctx.fillRect(0, 0, cvs.width, cvs.height);
+  return { cvs: cvs, ctx: ctx, cols: cols, rows: rows, gap: gap, pad: pad, labelH: labelH, cellW: cellW, cellH: cellH };
+}
+
+function xfDrawSheetCell(sh, i, src, item) {
+  const c = i % sh.cols, r = Math.floor(i / sh.cols);
+  const x = sh.pad + c * (sh.cellW + sh.gap);
+  const y = sh.pad + r * (sh.cellH + sh.labelH + sh.gap);
+  sh.ctx.drawImage(src, x, y, sh.cellW, sh.cellH);
+  sh.ctx.strokeStyle = 'rgba(200,118,46,.6)';
+  sh.ctx.lineWidth = 1;
+  sh.ctx.strokeRect(x + 0.5, y + 0.5, sh.cellW - 1, sh.cellH - 1);
+  if (sh.labelH > 0) {
+    sh.ctx.fillStyle = '#e8c49a';
+    sh.ctx.font = '13px -apple-system, "PingFang SC", sans-serif';
+    sh.ctx.textBaseline = 'middle';
+    sh.ctx.fillText(item.label + '　#' + (i + 1), x + 2, y + sh.cellH + sh.labelH / 2 + 1);
+  }
+}
+
+function xfSetProgressTxt(t) {
+  const el = document.getElementById('xp-progress-txt');
+  if (el) el.textContent = t;
+}
+function xfProgress(done, total, label) {
+  const box = document.getElementById('xp-progress');
+  const fill = document.getElementById('xp-bar-fill');
+  if (box) box.classList.add('on');
+  if (fill) fill.style.width = Math.round((done / total) * 100) + '%';
+  xfSetProgressTxt('正在出图 ' + done + ' / ' + total + '　' + label);
+}
+
+// 批量渲染核心：渲染前后完整保存/还原渲染状态，避免污染正在编辑的场景
+async function xfRenderBatch(items) {
+  const sz = xfExportSize();
+  const w = sz.w, h = sz.h;
+  const vp = document.getElementById('viewport');
+  const cv = renderer.domElement;
+  const vpW = vp.clientWidth, vpH = vp.clientHeight;
+  const transparent = XF_EXPORT.transparent && XF_EXPORT.format !== 'JPG';
+
+  const saved = {
+    pos: camera.position.clone(),
+    quat: camera.quaternion.clone(),
+    up: camera.up.clone(),
+    fov: camera.fov,
+    aspect: camera.aspect,
+    bg: scene.background,
+    clearAlpha: renderer.getClearAlpha(),
+    exposure: renderer.toneMappingExposure,
+    pixelRatio: renderer.getPixelRatio(),
+    groundVis: ground ? ground.visible : false,
+    indoorVis: indoorGroup ? indoorGroup.visible : false,
+    cvVis: cv.style.visibility,
+    cssVis: cssRenderer ? cssRenderer.domElement.style.visibility : ''
+  };
+
+  const results = [];
+  let sheet = null;
+
+  try {
+    orbitControls.enabled = false;
+    cv.style.visibility = 'hidden';
+    if (cssRenderer) cssRenderer.domElement.style.visibility = 'hidden';
+    if (XF_EXPORT.onlyMannequin) {
+      if (ground) ground.visible = false;
+      if (indoorGroup) indoorGroup.visible = false;
+    }
+    if (transparent) {
+      scene.background = null;
+      renderer.setClearAlpha(0);
+    }
+    renderer.setPixelRatio(1);
+    renderer.setSize(w, h, false);
+    camera.aspect = sz.aspect;
+    camera.fov = FOCAL_FOV[PARAMS.focalLength.value] || camera.fov;
+    camera.updateProjectionMatrix();
+
+    const tx = PARAMS.cameraPanX.value * 0.3;
+    const ty = PARAMS.targetHeight.value;
+    const tz = 0;
+    const radius = (SHOT_SIZE_DIST[PARAMS.shotSize.value] || 2.2) + PARAMS.cameraDistance.value;
+    const dutch = THREE.MathUtils.degToRad(PARAMS.dutchTilt.value || 0);
+    const pitch = THREE.MathUtils.degToRad(PARAMS.cameraTiltY.value || 0);
+
+    if (XF_EXPORT.mode === 'sheet') sheet = xfBuildSheet(items.length, w, h);
+
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const az = THREE.MathUtils.degToRad(it.az);
+      const el = THREE.MathUtils.degToRad(it.elev);
+      const hr = radius * Math.cos(el);
+      camera.position.set(tx + Math.sin(az) * hr, ty + radius * Math.sin(el), tz + Math.cos(az) * hr);
+      camera.up.set(0, 1, 0);
+      camera.lookAt(tx, ty, tz);
+      if (dutch) camera.rotation.z = dutch;
+      if (pitch) camera.rotation.x += pitch;
+      renderer.render(scene, camera);
+
+      if (sheet) xfDrawSheetCell(sheet, i, cv, it);
+      else results.push({ label: it.label, url: cv.toDataURL(xfMime(), 0.95) });
+
+      xfProgress(i + 1, items.length, it.label);
+      await xfNextFrame();
+    }
+  } finally {
+    try {
+      renderer.setPixelRatio(saved.pixelRatio);
+      renderer.setSize(vpW, vpH);
+      renderer.setClearAlpha(saved.clearAlpha);
+      scene.background = saved.bg;
+      renderer.toneMappingExposure = saved.exposure;
+      camera.position.copy(saved.pos);
+      camera.quaternion.copy(saved.quat);
+      camera.up.copy(saved.up);
+      camera.fov = saved.fov;
+      camera.aspect = vpW / vpH;
+      camera.updateProjectionMatrix();
+      if (ground) ground.visible = saved.groundVis;
+      if (indoorGroup) indoorGroup.visible = saved.indoorVis;
+      cv.style.visibility = saved.cvVis || '';
+      if (cssRenderer) cssRenderer.domElement.style.visibility = saved.cssVis || '';
+      orbitControls.enabled = true;
+      orbitControls.update();
+      renderer.render(scene, camera);
+      if (cssRenderer) cssRenderer.render(scene, camera);
+    } catch (e) {
+      console.warn('出图状态还原异常（已忽略）', e);
+    }
+  }
+  return { results: results, sheet: sheet };
+}
+
+// 单张截图（完全按当前屏幕视角）
+async function xfScreenshot() {
+  if (typeof renderer === 'undefined' || !renderer) { showToast('渲染器尚未就绪'); return; }
+  if (XF_EXPORT.running) { showToast('正在出图中，请稍候'); return; }
+  XF_EXPORT.running = true;
+  const sz = xfExportSize();
+  const vp = document.getElementById('viewport');
+  const cv = renderer.domElement;
+  const vpW = vp.clientWidth, vpH = vp.clientHeight;
+  const transparent = XF_EXPORT.transparent && XF_EXPORT.format !== 'JPG';
+  const saved = {
+    fov: camera.fov, aspect: camera.aspect,
+    pixelRatio: renderer.getPixelRatio(), clearAlpha: renderer.getClearAlpha(),
+    bg: scene.background,
+    groundVis: ground ? ground.visible : false,
+    indoorVis: indoorGroup ? indoorGroup.visible : false,
+    cvVis: cv.style.visibility,
+    cssVis: cssRenderer ? cssRenderer.domElement.style.visibility : ''
+  };
+  try {
+    if (XF_EXPORT.onlyMannequin) {
+      if (ground) ground.visible = false;
+      if (indoorGroup) indoorGroup.visible = false;
+    }
+    if (transparent) { scene.background = null; renderer.setClearAlpha(0); }
+    cv.style.visibility = 'hidden';
+    if (cssRenderer) cssRenderer.domElement.style.visibility = 'hidden';
+    renderer.setPixelRatio(1);
+    renderer.setSize(sz.w, sz.h, false);
+    camera.aspect = sz.aspect;
+    camera.updateProjectionMatrix();
+    renderer.render(scene, camera);
+    const url = cv.toDataURL(xfMime(), 0.95);
+    xfDownload(url, '导演台_截图_' + xfTimeStamp() + '.' + (XF_EXPORT.format === 'JPG' ? 'jpg' : 'png'));
+    showToast('截图已导出（' + sz.w + '×' + sz.h + '）');
+  } catch (e) {
+    console.error(e);
+    showToast('截图失败：' + (e && e.message ? e.message : e));
+  } finally {
+    renderer.setPixelRatio(saved.pixelRatio);
+    renderer.setSize(vpW, vpH);
+    renderer.setClearAlpha(saved.clearAlpha);
+    scene.background = saved.bg;
+    camera.fov = saved.fov;
+    camera.aspect = vpW / vpH;
+    camera.updateProjectionMatrix();
+    if (ground) ground.visible = saved.groundVis;
+    if (indoorGroup) indoorGroup.visible = saved.indoorVis;
+    cv.style.visibility = saved.cvVis || '';
+    if (cssRenderer) cssRenderer.domElement.style.visibility = saved.cssVis || '';
+    renderer.render(scene, camera);
+    if (cssRenderer) cssRenderer.render(scene, camera);
+    XF_EXPORT.running = false;
+  }
+}
+
+// 正式出图（拼图联系表 / 逐张下载）
+async function xfStartExport() {
+  if (typeof renderer === 'undefined' || !renderer) { showToast('渲染器尚未就绪'); return; }
+  if (XF_EXPORT.running) return;
+  const items = xfPlanList();
+  if (!items.length) { showToast('请至少选择 1 个机位角度'); return; }
+
+  XF_EXPORT.running = true;
+  const btn = document.getElementById('xp-start');
+  if (btn) { btn.disabled = true; btn.textContent = '出图中…'; }
+  const prev = document.getElementById('xp-preview');
+  if (prev) prev.classList.remove('on');
+  const t0 = Date.now();
+
+  try {
+    const out = await xfRenderBatch(items);
+    if (out.sheet) {
+      const url = out.sheet.cvs.toDataURL(xfMime(), 0.95);
+      const img = document.getElementById('xp-preview-img');
+      if (img) img.src = url;
+      if (prev) prev.classList.add('on');
+      xfDownload(url, '导演台_多角度拼图_' + items.length + '机位_' + xfTimeStamp() + '.' +
+        (XF_EXPORT.format === 'JPG' ? 'jpg' : 'png'));
+      xfSetProgressTxt('完成：1 张拼图（' + items.length + ' 机位），用时 ' +
+        ((Date.now() - t0) / 1000).toFixed(1) + ' 秒');
+      showToast('出图完成：拼图联系表 1 张（' + items.length + ' 机位）');
+    } else {
+      for (let i = 0; i < out.results.length; i++) {
+        const r = out.results[i];
+        xfDownload(r.url, '导演台_' + String(i + 1).padStart(2, '0') + '_' +
+          xfSanitize(r.label) + '.' + (XF_EXPORT.format === 'JPG' ? 'jpg' : 'png'));
+        xfSetProgressTxt('已导出 ' + (i + 1) + ' / ' + out.results.length + '　' + r.label);
+        await new Promise(function (res) { setTimeout(res, 260); });
+      }
+      showToast('出图完成：' + out.results.length + ' 张');
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('出图失败：' + (e && e.message ? e.message : e));
+    xfSetProgressTxt('出图失败：' + (e && e.message ? e.message : e));
+  } finally {
+    XF_EXPORT.running = false;
+    if (btn) { btn.disabled = false; btn.textContent = '开始出图'; }
+    renderExportStats();
+  }
+}
+
+// ====================================================================
+//  出图面板 UI
+// ====================================================================
+function buildExportModal() {
+  const el = document.createElement('div');
+  el.id = 'xf-export-modal';
+  el.innerHTML =
+    '<div class="xp-box">' +
+      '<div class="xp-head">' +
+        '<div><strong>🎞 多角度出图</strong>' +
+        '<div class="sub">按左侧「镜头参数」的景别与焦距，绕主体均匀取景</div></div>' +
+        '<button class="xp-close" onclick="closeExportPanel()">关闭</button>' +
+      '</div>' +
+      '<div class="xp-body">' +
+        '<div class="xp-sec">' +
+          '<div class="xp-sec-title">① 机位角度预设<span class="hint">点击切换整组角度</span></div>' +
+          '<div class="xp-chips" id="xp-presets"></div>' +
+        '</div>' +
+        '<div class="xp-sec">' +
+          '<div class="xp-sec-title">② 自定义角度（可多选）<span class="hint" id="xp-angle-hint"></span></div>' +
+          '<div class="xp-angles" id="xp-angles"></div>' +
+        '</div>' +
+        '<div class="xp-sec">' +
+          '<div class="xp-sec-title">③ 俯仰角度（可多选，张数随之增加）</div>' +
+          '<div class="xp-chips" id="xp-elevs"></div>' +
+        '</div>' +
+        '<div class="xp-sec">' +
+          '<div class="xp-sec-title">④ 输出设置</div>' +
+          '<div class="xp-grid2">' +
+            '<div class="xp-field"><label>长边像素</label><select id="xp-longside"></select></div>' +
+            '<div class="xp-field"><label>图片格式</label><select id="xp-format">' +
+              '<option value="PNG">PNG（支持透明）</option>' +
+              '<option value="JPG">JPG（体积更小）</option>' +
+            '</select></div>' +
+          '</div>' +
+          '<div class="xp-sec-title" style="margin:12px 0 7px;">输出方式</div>' +
+          '<div class="xp-chips" id="xp-modes"></div>' +
+          '<div class="xp-checks" style="margin-top:12px;">' +
+            '<label class="xp-check"><input type="checkbox" id="xp-transparent">透明背景</label>' +
+            '<label class="xp-check"><input type="checkbox" id="xp-onlyman">仅保留人偶（隐藏地面与道具）</label>' +
+            '<label class="xp-check"><input type="checkbox" id="xp-labels" checked>拼图标注机位名</label>' +
+          '</div>' +
+        '</div>' +
+        '<div class="xp-sec"><div class="xp-stats" id="xp-stats"></div></div>' +
+        '<div class="xp-sec xp-preview" id="xp-preview">' +
+          '<img id="xp-preview-img" alt="拼图预览">' +
+        '</div>' +
+      '</div>' +
+      '<div class="xp-foot">' +
+        '<div class="xp-progress" id="xp-progress">' +
+          '<div class="xp-bar"><i id="xp-bar-fill"></i></div>' +
+          '<div class="txt" id="xp-progress-txt">准备中…</div>' +
+        '</div>' +
+        '<div class="xp-actions">' +
+          '<button class="btn primary" id="xp-start" onclick="xfStartExport()">开始出图</button>' +
+          '<button class="btn" onclick="closeExportPanel()">取消</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(el);
+  el.addEventListener('click', function (e) { if (e.target === el) closeExportPanel(); });
+
+  const ls = el.querySelector('#xp-longside');
+  XF_LONGSIDE.forEach(function (v) {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = v + ' px';
+    if (v === XF_EXPORT.longSide) o.selected = true;
+    ls.appendChild(o);
+  });
+  ls.onchange = function () { XF_EXPORT.longSide = parseInt(ls.value, 10); renderExportStats(); };
+  const fs = el.querySelector('#xp-format');
+  fs.value = XF_EXPORT.format;
+  fs.onchange = function () { XF_EXPORT.format = fs.value; renderExportStats(); };
+  el.querySelector('#xp-transparent').onchange = function () { XF_EXPORT.transparent = this.checked; renderExportStats(); };
+  el.querySelector('#xp-onlyman').onchange = function () { XF_EXPORT.onlyMannequin = this.checked; };
+  el.querySelector('#xp-labels').onchange = function () { XF_EXPORT.labels = this.checked; };
+
+  xfExportModal = el;
+}
+
+function xfUpdatePresetChips() {
+  const box = document.getElementById('xp-presets');
+  if (!box) return;
+  box.innerHTML = '';
+  Object.keys(XF_ANGLE_SETS).forEach(function (name) {
+    const b = document.createElement('button');
+    b.className = 'xp-chip' + (XF_EXPORT.preset === name ? ' active' : '');
+    b.textContent = name + '（' + XF_ANGLE_SETS[name].length + '）';
+    b.onclick = function () { xfSetPreset(name); };
+    box.appendChild(b);
+  });
+}
+
+function xfSetPreset(name) {
+  const set = XF_ANGLE_SETS[name];
+  if (!set) return;
+  XF_EXPORT.preset = name;
+  XF_EXPORT.angles = set.slice();
+  xfUpdatePresetChips();
+  xfUpdateAngleChips();
+  renderExportStats();
+}
+
+function xfUpdateAngleChips() {
+  const box = document.getElementById('xp-angles');
+  if (!box) return;
+  box.innerHTML = '';
+  [0, 45, 90, 135, 180, 225, 270, 315].forEach(function (deg) {
+    const lab = document.createElement('label');
+    lab.className = 'xp-angle';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = XF_EXPORT.angles.indexOf(deg) >= 0;
+    cb.onchange = function () { xfToggleAngle(deg); };
+    const sp = document.createElement('span');
+    sp.textContent = xfAngleName(deg) + ' ' + deg + '°';
+    lab.appendChild(cb);
+    lab.appendChild(sp);
+    box.appendChild(lab);
+  });
+  const hint = document.getElementById('xp-angle-hint');
+  if (hint) hint.textContent = '已选 ' + XF_EXPORT.angles.length + ' 个';
+}
+
+function xfToggleAngle(deg) {
+  const i = XF_EXPORT.angles.indexOf(deg);
+  if (i >= 0) XF_EXPORT.angles.splice(i, 1);
+  else XF_EXPORT.angles.push(deg);
+  XF_EXPORT.preset = '';
+  xfUpdatePresetChips();
+  xfUpdateAngleChips();
+  renderExportStats();
+}
+
+function xfUpdateElevChips() {
+  const box = document.getElementById('xp-elevs');
+  if (!box) return;
+  box.innerHTML = '';
+  XF_ELEV_LIST.forEach(function (e) {
+    const b = document.createElement('button');
+    b.className = 'xp-chip' + (XF_EXPORT.elevs.indexOf(e.v) >= 0 ? ' active' : '');
+    b.textContent = e.k;
+    b.onclick = function () { xfToggleElev(e.v); };
+    box.appendChild(b);
+  });
+}
+
+function xfToggleElev(v) {
+  const i = XF_EXPORT.elevs.indexOf(v);
+  if (i >= 0) {
+    if (XF_EXPORT.elevs.length <= 1) { showToast('至少保留 1 个俯仰角度'); return; }
+    XF_EXPORT.elevs.splice(i, 1);
+  } else {
+    XF_EXPORT.elevs.push(v);
+  }
+  xfUpdateElevChips();
+  renderExportStats();
+}
+
+function xfUpdateModeChips() {
+  const box = document.getElementById('xp-modes');
+  if (!box) return;
+  box.innerHTML = '';
+  XF_MODES.forEach(function (m) {
+    const b = document.createElement('button');
+    b.className = 'xp-chip' + (XF_EXPORT.mode === m[0] ? ' active' : '');
+    b.textContent = m[1];
+    b.onclick = function () { XF_EXPORT.mode = m[0]; xfUpdateModeChips(); renderExportStats(); };
+    box.appendChild(b);
+  });
+}
+
+function renderExportStats() {
+  const box = document.getElementById('xp-stats');
+  if (!box) return;
+  const plan = xfPlanList();
+  const sz = xfExportSize();
+  const tOK = XF_EXPORT.transparent && XF_EXPORT.format !== 'JPG';
+  box.innerHTML =
+    '<span>机位数：<b>' + plan.length + '</b></span>' +
+    '<span>单张尺寸：<b>' + sz.w + '×' + sz.h + '</b></span>' +
+    '<span>输出方式：<b>' + (XF_EXPORT.mode === 'sheet' ? '拼图 1 张' : plan.length + ' 个文件') + '</b></span>' +
+    '<span>透明背景：<b>' + (XF_EXPORT.format === 'JPG' ? '不可用（JPG 无透明通道）'
+      : XF_EXPORT.mode === 'sheet' ? '不可用（拼图为拼合图）'
+      : XF_EXPORT.transparent ? (XF_EXPORT.onlyMannequin ? '开' : '开（建议勾选"仅保留人偶"）') : '关') + '</b></span>' +
+    (plan.length === 0 ? '<span style="color:var(--danger)">请至少选择 1 个角度</span>' : '');
+  const btn = document.getElementById('xp-start');
+  if (btn) btn.disabled = plan.length === 0 || XF_EXPORT.running;
+}
+
+function openExportPanel() {
+  if (!xfExportModal) buildExportModal();
+  xfExportModal.classList.add('open');
+  const fs = document.getElementById('xp-format');
+  if (fs) fs.value = XF_EXPORT.format;
+  const cbT = document.getElementById('xp-transparent');
+  if (cbT) cbT.checked = XF_EXPORT.transparent;
+  const cbO = document.getElementById('xp-onlyman');
+  if (cbO) cbO.checked = XF_EXPORT.onlyMannequin;
+  const cbL = document.getElementById('xp-labels');
+  if (cbL) cbL.checked = XF_EXPORT.labels;
+  xfUpdatePresetChips();
+  xfUpdateAngleChips();
+  xfUpdateElevChips();
+  xfUpdateModeChips();
+  renderExportStats();
+  const p = document.getElementById('xp-progress');
+  if (p) p.classList.remove('on');
+}
+
+function closeExportPanel() {
+  if (xfExportModal) xfExportModal.classList.remove('open');
+}
+
+// 参考图控件显示/隐藏（侧栏内联容器）
+function xfShowRefControls(show) {
+  const box = document.getElementById('ref-controls-inline');
+  if (box) box.style.display = show ? 'block' : 'none';
+  const ov = document.getElementById('ref-image-overlay');
+  if (ov && !show) { ov.style.backgroundImage = ''; ov.style.display = 'none'; }
+}
+
 function animate() {
   requestAnimationFrame(animate);
   const now = performance.now();
@@ -2221,6 +3243,14 @@ function ensureBoot() {
   }
   boot();
 }
+// 快捷键：Delete / Backspace 删除当前人偶（输入框聚焦时不触发）
+window.addEventListener('keydown', function (e) {
+  const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+  if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+  if (e.key === 'Delete') { e.preventDefault(); removeSelectedMannequin(); }
+  else if (e.key === 'Escape') { closeExportPanel(); if (typeof closeModelLibrary === 'function') closeModelLibrary(); }
+});
+
 if (document.readyState === 'complete') {
   ensureBoot();
 } else {
