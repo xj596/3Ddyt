@@ -48,6 +48,17 @@
   </div>
 
   <script>
+    // 跳转目标加固：只允许站内相对路径，缺扩展名自动补 .html
+    // （修复：门控曾把 redirect 写成 studio，登录后落到 /studio → 404）
+    function xfSafeRedirect(v) {
+      v = String(v || '').trim();
+      if (!v) return 'studio.html';
+      if (/^(?:[a-z]+:)?\/\//i.test(v) || v.indexOf(':') >= 0) return 'studio.html';
+      v = v.replace(/^\.?\//, '');
+      if (!/\.[a-z0-9]{2,5}$/i.test(v)) v += '.html';
+      return v;
+    }
+
     let mode = 'login';
     function switchTab(m) {
       mode = m;
@@ -68,7 +79,7 @@
         }
         await window.API.login(email, password);
         const params = new URLSearchParams(location.search);
-        window.location.replace(params.get('redirect') || 'studio.html');
+        window.location.replace(xfSafeRedirect(params.get('redirect')));
       } catch (err) {
         setMsg(err.message || '操作失败', 'err');
       }

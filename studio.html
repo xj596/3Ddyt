@@ -169,6 +169,7 @@
   .mv-btn:hover{background:var(--hover);border-color:var(--accent);color:var(--accent-hi);}
   .mv-btn:active{transform:translateY(1px);}
   .mv-btn.wide{grid-column:span 2;}
+  .mv-btn.mv-active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
   .mv-reset{
     width:100%;margin-top:2px;background:transparent;border:1px dashed var(--border2);
     color:var(--muted);border-radius:8px;padding:7px;font-size:.7rem;cursor:pointer;
@@ -513,6 +514,57 @@ window.__EMBEDDED_MODELS = {"man01.glb":"Z2xURgIAAAC0sAcA/GoBAEpTT057CiJhc3NldCI
           <button class="mv-btn" onclick="xfQuickHeight('仰拍')">仰拍</button>
         </div>
       </div>
+      <!-- ============ 正反打（过肩对切） ============ -->
+      <div class="card" id="ots-panel">
+        <h3>🎭 正反打（过肩对切） <span class="tag">双人对话机位</span></h3>
+        <div class="grid-2">
+          <div>
+            <div style="font-size:.66rem;color:var(--muted);margin-bottom:4px;">甲 · 前景肩</div>
+            <select id="ots-a" onchange="xfOTSSet('a', this.value)"></select>
+          </div>
+          <div>
+            <div style="font-size:.66rem;color:var(--muted);margin-bottom:4px;">乙 · 被拍对象</div>
+            <select id="ots-b" onchange="xfOTSSet('b', this.value)"></select>
+          </div>
+        </div>
+
+        <div style="font-size:.66rem;color:var(--muted);margin:10px 0 5px;">景别（切换镜头焦距）
+          <span style="color:var(--accent-hi);font-family:var(--mono);" id="ots-focal-hint">焦距 标准50mm</span>
+        </div>
+        <div class="grid-4">
+          <button class="mv-btn" onclick="xfOTSShot('特写')">特写</button>
+          <button class="mv-btn" onclick="xfOTSShot('近景')">近景</button>
+          <button class="mv-btn" onclick="xfOTSShot('中景')">中景</button>
+          <button class="mv-btn" onclick="xfOTSShot('全景')">全景</button>
+        </div>
+        <div style="font-size:.62rem;color:var(--muted);margin-top:6px;">
+          两人间距 <span id="ots-gap" style="color:var(--accent-hi);font-family:var(--mono);">—</span> m　（间距越小 / 焦距越长，被拍者越紧）
+        </div>
+
+        <div style="display:flex;align-items:center;gap:9px;margin-top:10px;">
+          <span style="font-size:.66rem;color:var(--muted);white-space:nowrap;">越肩距离</span>
+          <input type="range" id="ots-back" min="0.25" max="1.1" step="0.05" value="0.60" oninput="xfOTSSet('back', this.value)">
+          <span class="mv-size-val" id="ots-back-val">0.60</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px;margin-top:8px;">
+          <span style="font-size:.66rem;color:var(--muted);white-space:nowrap;">过肩偏移</span>
+          <input type="range" id="ots-offset" min="0.05" max="0.6" step="0.01" value="0.34" oninput="xfOTSSet('offset', this.value)">
+          <span class="mv-size-val" id="ots-offset-val">0.34</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px;margin-top:8px;">
+          <span style="font-size:.66rem;color:var(--muted);white-space:nowrap;">高度微调</span>
+          <input type="range" id="ots-height" min="-0.4" max="0.4" step="0.02" value="-0.05" oninput="xfOTSSet('height', this.value)">
+          <span class="mv-size-val" id="ots-height-val">-0.05</span>
+        </div>
+
+        <div class="grid-2" style="margin-top:12px;">
+          <button class="mv-btn" id="ots-btn-a" onclick="xfOTSApply(false)">🎬 正打（拍乙）</button>
+          <button class="mv-btn" id="ots-btn-b" onclick="xfOTSApply(true)">🔄 反打（拍甲）</button>
+        </div>
+        <button class="mv-reset" onclick="xfOTSFaceEachOther()">↔ 让两人相对而立（自动朝向）</button>
+        <button class="mv-reset" onclick="xfOTSExport()">📸 出正反打两张（按「多角度出图」的输出设置）</button>
+      </div>
+
       <!-- ============ 项目文件 / 参考图 ============ -->
       <div class="card" id="file-panel">
         <h3>📁 项目文件与参考图 <span class="tag">仅在本机处理</span></h3>
@@ -562,6 +614,7 @@ window.__EMBEDDED_MODELS = {"man01.glb":"Z2xURgIAAAC0sAcA/GoBAEpTT057CiJhc3NldCI
       <canvas id="grid-overlay"></canvas>
       <div id="info-bar">
         <span class="shot-info" id="shot-info">中景 · 平视 · 正面 · 50mm · 16:9</span>
+        <span id="cam-live">实际机位 —</span>
       </div>
       <div id="nav-hint">
         <span>左键旋转</span><span>滚轮缩放</span><span>右键平移</span>
@@ -1067,6 +1120,7 @@ function createMannequin(paletteIdx) {
   const cloneFn = SKns ? (SKns.SkeletonUtils ? SKns.SkeletonUtils.clone : SKns.clone) : null;
   const clone = cloneFn ? cloneFn(data.root) : data.root.clone(true);
   root.add(clone);
+  root.userData.inner = clone;   // 供"姿势根位移对齐"使用
   root.userData.transform = { x:0, y:0, z:0, rotY:0, rotX:0 };
   root.userData.baseY = 0;
   root.userData.paletteIdx = pIdx;
@@ -1094,6 +1148,10 @@ function createMannequin(paletteIdx) {
     }
   });
   root.userData.bones = bonesMap;
+
+  // 【修复·姿态根位移】动画剪辑自带根位移，套用站立姿势后人体会整体偏移
+  // （实测偏移约 0.32 m），导致"人物位置/间距"与画面不一致。此处按胯部骨骼对齐回原点。
+  xfAlignMannequinToRoot(root);
 
   // 头顶编号标签（001~100）
   const CSS2DObj = window.ModelLoaders && window.ModelLoaders.CSS2DObject;
@@ -1248,6 +1306,32 @@ function applyCustomPose(m, preset) {
 function refreshSkinned(root) {
   root.updateMatrixWorld(true);
   root.traverse(o => { if (o.isSkinnedMesh) o.skeleton.update(); });
+  // 姿势切换会带来新的根位移，重新把人体中心对齐到根节点原点（幂等操作）
+  xfAlignMannequinToRoot(root);
+}
+
+// 用「胯部(Hips)骨骼」把人体水平中心对齐到人偶根节点原点。
+// 说明：本套模型的根节点并不在人体中心（且动画剪辑自带根位移），若不校正，
+// 根节点位置与实际身体位置会相差 0.3~0.6 m，参数与画面就会"对不上"。
+function xfAlignMannequinToRoot(root) {
+  try {
+    if (!root || !root.userData) return;
+    const inner = root.userData.inner;
+    const bones = root.userData.bones;
+    if (!inner || !bones) return;
+    const hips = bones.Hips || bones.Body || bones.Abdomen || bones.Torso;
+    if (!hips) return;
+    root.updateMatrixWorld(true);
+    const wp = new THREE.Vector3();
+    hips.getWorldPosition(wp);
+    const lp = root.worldToLocal(wp.clone());
+    // 只校正水平方向；竖直方向保持"脚底贴地"
+    inner.position.x -= lp.x;
+    inner.position.z -= lp.z;
+    root.updateMatrixWorld(true);
+  } catch (e) {
+    console.warn('人偶对齐异常（已忽略）', e);
+  }
 }
 
 // 构建右侧姿势面板
@@ -1441,7 +1525,22 @@ async function loadAllModels() {
     const sc = MANNEQUIN_TARGET_HEIGHT / bb.height;
     const inner = new THREE.Group();
     inner.add(src);
-    src.position.set(-bb.cx, -bb.minY, -bb.cz);
+    // 【修复·原点偏移】原实现用「骨骼包围盒中心」对齐原点，但本套模型的脚趾/手部骨骼
+    // 分布不对称（实测根节点在 x=-0.6 时，Head 骨骼却在 x=0.04，偏差约 0.6m），
+    // 导致"人物位置/人物间距"与画面上看到的位置不一致、机位也无法对准人体。
+    // 改为以「胯部(Hips)骨骼」为人体水平中心对齐原点，与制作时的直觉一致。
+    const hipsBone = src.getObjectByName('Hips') || src.getObjectByName('Body') || src.getObjectByName('Bone');
+    const center = new THREE.Vector3();
+    if (hipsBone) {
+      hipsBone.getWorldPosition(center);          // src 尚未挂到 inner，世界坐标即自身坐标
+    } else {
+      center.set(bb.cx, 0, bb.cz);
+    }
+    src.position.set(-center.x, -bb.minY, -center.z);
+    // 【修复·正反颠倒】本套 Animated Men 模型正面朝 +Z，而本应用按"正面朝 -Z"建模，
+    // 导致「拍摄角度=正面」实际拍到后背、「背面」反而拍到正面。
+    // 在模型容器上统一旋转 180°，使两者约定一致（对其它参数、姿势、出图全部生效）。
+    inner.rotation.y = Math.PI;
     inner.scale.setScalar(sc);
     inner.updateMatrixWorld(true);
     cachedModels.push({ root: inner, anims: gltf.animations || [] });
@@ -2038,6 +2137,8 @@ function updateMannequinSelector() {
   }
   const badge = document.getElementById('mannequin-count-badge');
   if (badge) badge.textContent = '共 ' + mannequins.length + ' 个';
+  // 正反打下拉随人数同步（函数声明提升，boot 阶段已可用）
+  if (typeof xfOTSSyncSelects === 'function') xfOTSSyncSelects();
 }
 
 
@@ -2382,7 +2483,7 @@ function computeCameraMoveEnd(type, startPos, startTarget, startFov) {
   forwardHoriz.normalize();
   const right = new THREE.Vector3().crossVectors(forwardHoriz, worldUp).normalize();
 
-  const DOLLY = 0.82, TRUCK = Math.max(0.8, dist * 0.28), CRANE = 1.4, PAN = 0.26, ORBIT = 0.6;
+  const DOLLY = 0.82, TRUCK = Math.max(0.8, dist * 0.28), CRANE = 1.4, PAN = 0.26, ORBIT = Math.PI / 4; // 环绕 45°/次
 
   switch (type) {
     case 'dollyIn':  endPos.copy(startTarget).add(offset.clone().multiplyScalar(DOLLY)); break;
@@ -2420,11 +2521,22 @@ function computeCameraMoveEnd(type, startPos, startTarget, startFov) {
     const dir = new THREE.Vector3().subVectors(endPos, endTarget).normalize();
     endPos.copy(endTarget).add(dir.multiplyScalar(clamped));
   }
-  return { pos: endPos, target: endTarget, fov: endFov };
+  // 环绕类运镜走弧线插值（保持半径不变），避免直线插值中途"贴近"目标
+  const arc = (type === 'orbit' || type === 'panLeft' || type === 'panRight');
+  return { pos: endPos, target: endTarget, fov: endFov, arc: arc };
 }
 
 function cameraMove(type) {
-  if (camTween) return; // 上一次运动尚未结束，忽略本次
+  // 【修复】上一次运动未结束时不再静默丢弃点击：入队并在当前运动结束后自动接续
+  if (camTween) {
+    if (xfCamQueue.length < 10) {
+      xfCamQueue.push(type);
+      showToast('已加入运镜队列（' + xfCamQueue.length + '）：' + (CAM_MOVE_LABEL[type] || type));
+    } else {
+      showToast('运镜队列已满，请稍候');
+    }
+    return;
+  }
   const startPos = camera.position.clone();
   const startTarget = orbitControls.target.clone();
   const startFov = camera.fov;
@@ -2433,7 +2545,9 @@ function cameraMove(type) {
     end = {
       pos: new THREE.Vector3(CAM_DEFAULT.pos.x, CAM_DEFAULT.pos.y, CAM_DEFAULT.pos.z),
       target: new THREE.Vector3(CAM_DEFAULT.target.x, CAM_DEFAULT.target.y, CAM_DEFAULT.target.z),
-      fov: CAM_DEFAULT.fov
+      // 【修复】复位不再把 FOV 跳回 45°（那会与「焦距」参数显示的 50mm/FOV39 矛盾）
+      fov: startFov,
+      arc: false
     };
   } else {
     end = computeCameraMoveEnd(type, startPos, startTarget, startFov);
@@ -2442,11 +2556,14 @@ function cameraMove(type) {
   camTween = {
     t0: performance.now(),
     dur: 850,
+    mode: end.arc ? 'arc' : 'linear',
     startPos: startPos, startTarget: startTarget, startFov: startFov,
-    endPos: end.pos, endTarget: end.target, endFov: end.fov
+    endPos: end.pos, endTarget: end.target, endFov: end.fov,
+    sph: end.arc ? xfArcParams(startPos, startTarget, end.pos, end.target) : null
   };
   orbitControls.enabled = false;
-  showToast('镜头：' + (CAM_MOVE_LABEL[type] || type));
+  showToast('镜头：' + (CAM_MOVE_LABEL[type] || type) +
+    (xfCamQueue.length ? '（队列 ' + xfCamQueue.length + '）' : ''));
 }
 
 
@@ -2758,7 +2875,7 @@ function xfProgress(done, total, label) {
 }
 
 // 批量渲染核心：渲染前后完整保存/还原渲染状态，避免污染正在编辑的场景
-async function xfRenderBatch(items) {
+async function xfRenderBatch(items, shots) {
   const sz = xfExportSize();
   const w = sz.w, h = sz.h;
   const vp = document.getElementById('viewport');
@@ -2814,12 +2931,20 @@ async function xfRenderBatch(items) {
 
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      const az = THREE.MathUtils.degToRad(it.az);
-      const el = THREE.MathUtils.degToRad(it.elev);
-      const hr = radius * Math.cos(el);
-      camera.position.set(tx + Math.sin(az) * hr, ty + radius * Math.sin(el), tz + Math.cos(az) * hr);
-      camera.up.set(0, 1, 0);
-      camera.lookAt(tx, ty, tz);
+      const shot = (shots && shots[i]) ? shots[i] : null;
+      if (shot) {
+        // 显式机位（如正反打）：直接用给定位置与视点
+        camera.position.copy(shot.pos);
+        camera.up.set(0, 1, 0);
+        camera.lookAt(shot.target.x, shot.target.y, shot.target.z);
+      } else {
+        const az = THREE.MathUtils.degToRad(it.az);
+        const el = THREE.MathUtils.degToRad(it.elev);
+        const hr = radius * Math.cos(el);
+        camera.position.set(tx + Math.sin(az) * hr, ty + radius * Math.sin(el), tz + Math.cos(az) * hr);
+        camera.up.set(0, 1, 0);
+        camera.lookAt(tx, ty, tz);
+      }
       if (dutch) camera.rotation.z = dutch;
       if (pitch) camera.rotation.x += pitch;
       renderer.render(scene, camera);
@@ -2930,26 +3055,7 @@ async function xfStartExport() {
 
   try {
     const out = await xfRenderBatch(items);
-    if (out.sheet) {
-      const url = out.sheet.cvs.toDataURL(xfMime(), 0.95);
-      const img = document.getElementById('xp-preview-img');
-      if (img) img.src = url;
-      if (prev) prev.classList.add('on');
-      xfDownload(url, '导演台_多角度拼图_' + items.length + '机位_' + xfTimeStamp() + '.' +
-        (XF_EXPORT.format === 'JPG' ? 'jpg' : 'png'));
-      xfSetProgressTxt('完成：1 张拼图（' + items.length + ' 机位），用时 ' +
-        ((Date.now() - t0) / 1000).toFixed(1) + ' 秒');
-      showToast('出图完成：拼图联系表 1 张（' + items.length + ' 机位）');
-    } else {
-      for (let i = 0; i < out.results.length; i++) {
-        const r = out.results[i];
-        xfDownload(r.url, '导演台_' + String(i + 1).padStart(2, '0') + '_' +
-          xfSanitize(r.label) + '.' + (XF_EXPORT.format === 'JPG' ? 'jpg' : 'png'));
-        xfSetProgressTxt('已导出 ' + (i + 1) + ' / ' + out.results.length + '　' + r.label);
-        await new Promise(function (res) { setTimeout(res, 260); });
-      }
-      showToast('出图完成：' + out.results.length + ' 张');
-    }
+    xfFinalizeExport(out, items.length, t0, '多角度');
   } catch (e) {
     console.error(e);
     showToast('出图失败：' + (e && e.message ? e.message : e));
@@ -3183,14 +3289,345 @@ function xfShowRefControls(show) {
   if (ov && !show) { ov.style.backgroundImage = ''; ov.style.display = 'none'; }
 }
 
+// ====================================================================
+//  运镜健壮性修复：连击排队 / 弧线插值 / 实时机位读数
+//  问题：① 上一次运镜未结束时点击被静默丢弃，连点 3 次只转 1 次；
+//        ② 环绕用直线插值，中途相机会沿弦线"贴近"目标（实测半径掉 4%）；
+//        ③ 运镜后「拍摄角度」参数与实际机位脱节，画面上看不出真实机位。
+// ====================================================================
+const xfCamQueue = [];
+
+// 弧线插值参数：以目标点为球心，保持半径不变只转角度
+function xfArcParams(sp, st, ep, et) {
+  const s0 = new THREE.Spherical().setFromVector3(new THREE.Vector3().subVectors(sp, st));
+  const s1 = new THREE.Spherical().setFromVector3(new THREE.Vector3().subVectors(ep, et));
+  let th1 = s1.theta;
+  while (th1 - s0.theta > Math.PI) th1 -= Math.PI * 2;
+  while (th1 - s0.theta < -Math.PI) th1 += Math.PI * 2;
+  return { r0: s0.radius, ph0: s0.phi, th0: s0.theta, r1: s1.radius, ph1: s1.phi, th1: th1 };
+}
+
+// 当前 tween 结束后，自动接续排队的运镜
+function xfFlushCamQueue() {
+  if (xfCamQueue.length) {
+    const next = xfCamQueue.shift();
+    if (next) cameraMove(next);
+  }
+}
+
+// 信息栏实时读数：真实机位方位角 / 距离 / 视野
+let _xfHudT = 0;
+function xfUpdateLiveHUD() {
+  const el = document.getElementById('cam-live');
+  if (!el) return;
+  const now = performance.now();
+  if (now - _xfHudT < 120) return;
+  _xfHudT = now;
+  const off = new THREE.Vector3().subVectors(camera.position, orbitControls.target);
+  const r = off.length();
+  const az = ((Math.atan2(off.x, off.z) * 180 / Math.PI) + 360) % 360;
+  const txt = '实际机位 ' + az.toFixed(0) + '° · ' + r.toFixed(2) + ' m · FOV ' + camera.fov.toFixed(0) + '°';
+  if (el.textContent !== txt) el.textContent = txt;
+}
+
+// ====================================================================
+//  正反打（过肩对切）—— 双人对话标准机位
+//  正打：越「甲」的肩，拍「乙」；反打：越「乙」的肩，拍「甲」。
+//
+//  几何（v2.2 重构）：机位以「前景角色的肩后」为基准，而不是以被拍者为基准——
+//  机位 = 甲头部 - 视线轴×越肩距离 + 侧向偏移 + 高度微调，视线对准乙头部。
+//  这样甲的肩/后脑自然在画面一侧形成过肩前景，乙的景别则由「镜头焦距 + 两人间距」决定：
+//  两人间距越小越紧，焦距越长越紧（特写 85mm / 近景 50mm / 中景 35mm / 全景 24mm）。
+// ====================================================================
+const XF_OTS_SHOTS = { '特写': '中焦85mm', '近景': '标准50mm', '中景': '标准35mm', '全景': '广角24mm' };
+const XF_OTS = {
+  aIdx: 0, bIdx: 1, back: 0.60, offset: 0.34, height: -0.08,
+  shot: '近景', lastRev: false, active: false
+};
+
+// 人物锚点：head=头部 / chest=躯干 / body=胯部（人体水平中心）
+// 直接取关键骨骼的世界坐标——比"根节点 + 经验高度"可靠（模型原点与网格可能不重合，
+// 且坐下/躺卧等姿势会改变各部位实际高度）。
+function xfMannequinAnchor(m, kind) {
+  if (!m) return new THREE.Vector3();
+  if (m.updateMatrixWorld) m.updateMatrixWorld(true);
+  const bones = (m.userData && m.userData.bones) ? m.userData.bones : null;
+  const pick = function (names) {
+    if (!bones) return null;
+    for (let i = 0; i < names.length; i++) { if (bones[names[i]]) return bones[names[i]]; }
+    return null;
+  };
+  let bone = null;
+  if (kind === 'head') bone = pick(['Head', 'Neck', 'Torso']);
+  else if (kind === 'chest') bone = pick(['Torso', 'Abdomen', 'Neck']);
+  else bone = pick(['Hips', 'Abdomen', 'Body', 'Torso']);
+  if (bone) {
+    const v = new THREE.Vector3();
+    bone.getWorldPosition(v);
+    return v;
+  }
+  // 兜底：根节点 + 经验高度
+  const sc = (m.scale) ? m.scale.y : 1;
+  const y = (kind === 'head') ? 1.55 : (kind === 'chest') ? 1.15 : 0.95;
+  return new THREE.Vector3(m.position.x, m.position.y + y * sc, m.position.z);
+}
+
+// 计算过肩机位（rev=false：正打拍乙；rev=true：反打拍甲）
+function xfOTSCompose(rev) {
+  if (!mannequins || mannequins.length < 2) return null;
+  let aIdx = rev ? XF_OTS.bIdx : XF_OTS.aIdx;
+  let bIdx = rev ? XF_OTS.aIdx : XF_OTS.bIdx;
+  aIdx = Math.max(0, Math.min(mannequins.length - 1, parseInt(aIdx, 10) || 0));
+  bIdx = Math.max(0, Math.min(mannequins.length - 1, parseInt(bIdx, 10) || 0));
+  if (aIdx === bIdx) bIdx = (aIdx + 1) % mannequins.length;
+  const A = mannequins[aIdx], B = mannequins[bIdx];
+
+  const Bh = xfMannequinAnchor(B, 'head');
+  const Ah = xfMannequinAnchor(A, 'head');
+  const axis = new THREE.Vector3(Bh.x - Ah.x, 0, Bh.z - Ah.z);
+  if (axis.lengthSq() < 1e-6) axis.set(0, 0, 1);
+  axis.normalize();
+  const up = new THREE.Vector3(0, 1, 0);
+  const right = new THREE.Vector3().crossVectors(axis, up).normalize();
+
+  // 机位基准＝甲（前景角色）的头部，沿轴后退「越肩距离」并侧移「过肩偏移」
+  // 基准点：甲的头部骨骼世界坐标（含其真实朝向偏移），再沿轴后退 + 侧移
+  const pos = Ah.clone()
+    .addScaledVector(axis, -XF_OTS.back)
+    .addScaledVector(right, XF_OTS.offset)
+    .add(new THREE.Vector3(0, XF_OTS.height, 0));
+  pos.y = Math.max(0.35, pos.y);
+
+  // 视线微微越过前景肩部：向偏移反方向让出一点，使乙更居中且肩部留在画面内
+  const target = Bh.clone().addScaledVector(right, -XF_OTS.offset * 0.18);
+
+  // 防止机位钻进甲的身体：与甲头部水平距离过近时沿"远离甲"方向推开
+  const toCamX = pos.x - Ah.x, toCamZ = pos.z - Ah.z;
+  const horizToA = Math.sqrt(toCamX * toCamX + toCamZ * toCamZ);
+  if (horizToA < 0.25) {
+    if (horizToA < 1e-4) {
+      pos.add(new THREE.Vector3(axis.x, 0, axis.z).multiplyScalar(-0.25));
+    } else {
+      const k = (0.25 - horizToA) / horizToA;
+      pos.x += toCamX * k;
+      pos.z += toCamZ * k;
+    }
+  }
+  return { pos: pos, target: target, aIdx: aIdx, bIdx: bIdx };
+}
+
+// 应用过肩机位（带平滑过渡）
+function xfOTSApply(rev) {
+  if (!mannequins || mannequins.length < 2) { showToast('正反打需要至少 2 个人偶，请先「➕ 新增」'); return; }
+  const shot = xfOTSCompose(rev);
+  if (!shot) { showToast('无法计算正反打机位'); return; }
+  XF_OTS.lastRev = !!rev;
+  XF_OTS.active = true;
+  camTween = null;
+  xfCamQueue.length = 0;
+  camera.position.copy(shot.pos);
+  camera.up.set(0, 1, 0);
+  orbitControls.target.copy(shot.target);
+  // 视角跟随「镜头参数·焦距」：过肩机位的景别由焦距控制（几何保持物理真实）
+  if (FOCAL_FOV[PARAMS.focalLength.value]) {
+    camera.fov = FOCAL_FOV[PARAMS.focalLength.value];
+    camera.updateProjectionMatrix();
+  }
+  orbitControls.enabled = true;
+  orbitControls.update();
+  camera.lookAt(shot.target.x, shot.target.y, shot.target.z);
+  xfOTSUpdateGap();
+  if (PARAMS && PARAMS.dutchTilt && PARAMS.dutchTilt.value) {
+    camera.rotation.z = THREE.MathUtils.degToRad(PARAMS.dutchTilt.value);
+  }
+  xfOTSHighlight();
+  xfUpdateLiveHUD();
+  showToast((rev ? '反打（拍甲）' : '正打（拍乙）') + '：#' + (shot.aIdx + 1) + ' 肩过 → #' + (shot.bIdx + 1));
+}
+
+// 显示两人当前间距（间距 × 焦距共同决定被拍者的景别）
+function xfOTSUpdateGap() {
+  const g = document.getElementById('ots-gap');
+  if (!g) return;
+  if (!mannequins || mannequins.length < 2) { g.textContent = '—'; return; }
+  const a = xfMannequinAnchor(mannequins[Math.min(XF_OTS.aIdx, mannequins.length - 1)], 'body');
+  const b = xfMannequinAnchor(mannequins[Math.min(XF_OTS.bIdx, mannequins.length - 1)], 'body');
+  const dx = a.x - b.x, dz = a.z - b.z;
+  g.textContent = Math.sqrt(dx * dx + dz * dz).toFixed(2);
+}
+
+// 一键让甲乙相对而立（修正后的朝向约定：模型正面朝 -Z）
+function xfOTSFaceEachOther() {
+  if (!mannequins || mannequins.length < 2) { showToast('需要至少 2 个人偶'); return; }
+  const ia = Math.max(0, Math.min(mannequins.length - 1, XF_OTS.aIdx));
+  let ib = Math.max(0, Math.min(mannequins.length - 1, XF_OTS.bIdx));
+  if (ib === ia) ib = (ia + 1) % mannequins.length;
+  const A = mannequins[ia], B = mannequins[ib];
+  const Ab = xfMannequinAnchor(A, 'body'), Bb = xfMannequinAnchor(B, 'body');
+  const dx = Bb.x - Ab.x, dz = Bb.z - Ab.z;
+  const len = Math.sqrt(dx * dx + dz * dz);
+  if (len < 1e-4) { showToast('两人位置重合，请先调整间距'); return; }
+  const ux = dx / len, uz = dz / len;
+  // 朝向公式：forward = (-sinθ, 0, -cosθ) → θ = atan2(-d.x, -d.z)
+  A.userData.transform = A.userData.transform || { x:0, y:0, z:0, rotY:0, rotX:0 };
+  B.userData.transform = B.userData.transform || { x:0, y:0, z:0, rotY:0, rotX:0 };
+  A.userData.transform.rotY = Math.atan2(-ux, -uz);
+  B.userData.transform.rotY = Math.atan2(ux, uz);
+  applyParams();
+  showToast('已让 #' + (ia + 1) + ' 与 #' + (ib + 1) + ' 相对而立');
+  if (XF_OTS.active) xfOTSApply(XF_OTS.lastRev);
+}
+
+// 高亮当前正/反打按钮
+function xfOTSHighlight() {
+  const a = document.getElementById('ots-btn-a');
+  const b = document.getElementById('ots-btn-b');
+  if (a) a.classList.toggle('mv-active', XF_OTS.active && !XF_OTS.lastRev);
+  if (b) b.classList.toggle('mv-active', XF_OTS.active && XF_OTS.lastRev);
+}
+
+// 下拉框同步（甲/乙不允许相同）
+function xfOTSSyncSelects() {
+  const sa = document.getElementById('ots-a');
+  const sb = document.getElementById('ots-b');
+  if (!sa || !sb) return;
+  const n = mannequins.length;
+  // 仅在人数变化时重建选项，避免频繁重建打断下拉交互
+  [sa, sb].forEach(function (sel) {
+    if (sel.options.length !== n) {
+      sel.innerHTML = '';
+      for (let i = 0; i < n; i++) {
+        const o = document.createElement('option');
+        o.value = i;
+        o.textContent = '#' + String(i + 1).padStart(3, '0') + ' 人偶 ' + (i + 1);
+        sel.appendChild(o);
+      }
+    }
+  });
+  if (XF_OTS.aIdx >= n) XF_OTS.aIdx = 0;
+  if (XF_OTS.bIdx >= n || XF_OTS.bIdx === XF_OTS.aIdx) XF_OTS.bIdx = (XF_OTS.aIdx + 1) % Math.max(1, n);
+  sa.value = XF_OTS.aIdx;
+  sb.value = XF_OTS.bIdx;
+  xfOTSUpdateGap();
+}
+
+// 出图收尾（多角度出图与正反打出图共用）：下载 + 预览 + 进度提示
+function xfFinalizeExport(out, count, t0, prefix) {
+  const tag = prefix || '多角度';
+  const fmt = XF_EXPORT.format === 'JPG' ? 'jpg' : 'png';
+  if (out.sheet) {
+    const url = out.sheet.cvs.toDataURL(xfMime(), 0.95);
+    const img = document.getElementById('xp-preview-img');
+    if (img) img.src = url;
+    const prev = document.getElementById('xp-preview');
+    if (prev) prev.classList.add('on');
+    xfDownload(url, '导演台_' + tag + '_拼图_' + count + '机位_' + xfTimeStamp() + '.' + fmt);
+    xfSetProgressTxt('完成：1 张拼图（' + count + ' 机位），用时 ' + ((Date.now() - t0) / 1000).toFixed(1) + ' 秒');
+    showToast(tag + '出图完成：拼图 1 张（' + count + ' 机位）');
+  } else {
+    out.results.forEach(function (r, i) {
+      xfDownload(r.url, '导演台_' + String(i + 1).padStart(2, '0') + '_' + xfSanitize(r.label) + '.' + fmt);
+    });
+    xfSetProgressTxt('完成：已导出 ' + out.results.length + ' 张');
+    showToast(tag + '出图完成：' + out.results.length + ' 张');
+  }
+}
+
+function xfOTSSet(key, val) {
+  if (key === 'a') {
+    XF_OTS.aIdx = parseInt(val, 10) || 0;
+    if (XF_OTS.bIdx === XF_OTS.aIdx) XF_OTS.bIdx = (XF_OTS.aIdx + 1) % Math.max(1, mannequins.length);
+  } else if (key === 'b') {
+    XF_OTS.bIdx = parseInt(val, 10) || 0;
+    if (XF_OTS.bIdx === XF_OTS.aIdx) XF_OTS.aIdx = (XF_OTS.bIdx + 1) % Math.max(1, mannequins.length);
+  } else if (key === 'back') {
+    XF_OTS.back = parseFloat(val) || 0.6;
+    const el = document.getElementById('ots-back-val');
+    if (el) el.textContent = XF_OTS.back.toFixed(2);
+  } else if (key === 'offset') {
+    XF_OTS.offset = parseFloat(val) || 0.3;
+    const el = document.getElementById('ots-offset-val');
+    if (el) el.textContent = XF_OTS.offset.toFixed(2);
+  } else if (key === 'height') {
+    XF_OTS.height = parseFloat(val) || 0;
+    const el = document.getElementById('ots-height-val');
+    if (el) el.textContent = XF_OTS.height.toFixed(2);
+  }
+  xfOTSSyncSelects();
+  if (XF_OTS.active) xfOTSApply(XF_OTS.lastRev);
+}
+
+function xfOTSShot(name) {
+  if (!(name in XF_OTS_SHOTS)) return;
+  XF_OTS.shot = name;
+  const fl = XF_OTS_SHOTS[name];
+  // 景别＝切换镜头焦距（同步左侧「镜头参数·焦距」，保持全站一致）
+  PARAMS.focalLength.value = fl;
+  const el = document.getElementById('param-focalLength');
+  if (el) el.value = fl;
+  updateParamDisplay('focalLength');
+  // 声明该参数已生效，避免下次 applyParams 时相机跳回参数机位
+  _xfShotSig = xfShotSignature();
+  const hint = document.getElementById('ots-focal-hint');
+  if (hint) hint.textContent = '焦距 ' + fl;
+  showToast('正反打景别：' + name + '（焦距 ' + fl + '）');
+  if (mannequins.length >= 2) xfOTSApply(XF_OTS.active ? XF_OTS.lastRev : false);
+}
+
+// 一键出正反打两张（沿用「多角度出图」的输出设置：拼图 / 逐张 / 长边 / 透明）
+async function xfOTSExport() {
+  if (typeof renderer === 'undefined' || !renderer) { showToast('渲染器尚未就绪'); return; }
+  if (!mannequins || mannequins.length < 2) { showToast('正反打需要至少 2 个人偶'); return; }
+  if (XF_EXPORT.running) { showToast('正在出图中，请稍候'); return; }
+  const direct = xfOTSCompose(false);
+  const reverse = xfOTSCompose(true);
+  if (!direct || !reverse) { showToast('无法计算正反打机位'); return; }
+
+  const items = [
+    { label: '正打 · 越#' + (direct.aIdx + 1) + '肩拍#' + (direct.bIdx + 1), pos: direct.pos, target: direct.target },
+    { label: '反打 · 越#' + (reverse.aIdx + 1) + '肩拍#' + (reverse.bIdx + 1), pos: reverse.pos, target: reverse.target }
+  ];
+  openExportPanel();          // 复用出图面板展示进度与拼图预览
+  const btn = document.getElementById('xp-start');
+  if (btn) { btn.disabled = true; btn.textContent = '出图中…'; }
+  XF_EXPORT.running = true;
+  const prev = document.getElementById('xp-preview');
+  if (prev) prev.classList.remove('on');
+  const t0 = Date.now();
+  try {
+    const out = await xfRenderBatch(items, items);
+    xfFinalizeExport(out, items.length, t0, '正反打');
+  } catch (e) {
+    console.error(e);
+    showToast('正反打出图失败：' + (e && e.message ? e.message : e));
+    xfSetProgressTxt('出图失败：' + (e && e.message ? e.message : e));
+  } finally {
+    XF_EXPORT.running = false;
+    if (btn) { btn.disabled = false; btn.textContent = '开始出图'; }
+    renderExportStats();
+  }
+}
+
 function animate() {
   requestAnimationFrame(animate);
   const now = performance.now();
   if (camTween) {
     const k = Math.min(1, (now - camTween.t0) / camTween.dur);
     const e = easeInOutCubic(k);
-    camera.position.lerpVectors(camTween.startPos, camTween.endPos, e);
     orbitControls.target.lerpVectors(camTween.startTarget, camTween.endTarget, e);
+    if (camTween.mode === 'arc' && camTween.sph) {
+      // 弧线插值：半径/俯仰/方位分别插值，半径全程保持不变
+      const sp = camTween.sph;
+      if (!camTween._sph) camTween._sph = new THREE.Spherical();
+      camTween._sph.set(
+        sp.r0 + (sp.r1 - sp.r0) * e,
+        sp.ph0 + (sp.ph1 - sp.ph0) * e,
+        sp.th0 + (sp.th1 - sp.th0) * e
+      );
+      camera.position.setFromSpherical(camTween._sph).add(orbitControls.target);
+    } else {
+      camera.position.lerpVectors(camTween.startPos, camTween.endPos, e);
+    }
     if (camTween.endFov !== camTween.startFov) {
       camera.fov = camTween.startFov + (camTween.endFov - camTween.startFov) * e;
       camera.updateProjectionMatrix();
@@ -3199,10 +3636,12 @@ function animate() {
     if (k >= 1) {
       camTween = null;
       orbitControls.enabled = true;
+      xfFlushCamQueue();
     }
   } else if (orbitControls.enabled) {
     orbitControls.update();
   }
+  xfUpdateLiveHUD();
   renderer.render(scene, camera);
   if (cssRenderer) cssRenderer.render(scene, camera);
 }
@@ -3273,7 +3712,7 @@ if (document.readyState === 'complete') {
     document.getElementById('user-email').textContent = u.email;
     document.getElementById('auth-gate').style.display = 'none';
   } catch (e) {
-    window.location.replace('login.html?redirect=studio');
+    window.location.replace('login.html?redirect=studio.html');
   }
 })();
 </script>
